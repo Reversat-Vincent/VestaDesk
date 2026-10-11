@@ -11,7 +11,7 @@ fn each_failure_has_the_expected_description_and_severity() {
     let cases = [
         (
             VestaDeskError::ConfigDirUnavailable,
-            Severity::Fatal,
+            Severity::Recoverable,
             "the system provides no configuration directory",
         ),
         (

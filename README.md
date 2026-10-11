@@ -20,6 +20,10 @@ cargo test                 # run the tests
 cargo doc --no-deps --open # build and open the developer documentation
 ```
 
+## Settings
+
+VestaDesk stores its settings in `%APPDATA%\VestaDesk` on Windows and `~/.config/VestaDesk` on Linux. Set `VESTADESK_SETTINGS_DIR` to use another folder.
+
 ## Logging
 
 By default VestaDesk logs a startup summary (version, operating system and settings folder), warnings and errors. Release builds on Windows have no console window, so their log output is not visible.

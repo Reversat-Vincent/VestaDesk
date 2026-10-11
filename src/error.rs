@@ -25,7 +25,7 @@ pub enum Severity {
 /// An expected failure of the app.
 #[derive(Debug, Error)]
 pub enum VestaDeskError {
-    /// The operating system gave no per-user configuration directory.
+    /// The operating system gave no per-user configuration directory: the app keeps the settings in memory.
     #[error("the system provides no configuration directory")]
     ConfigDirUnavailable,
 
@@ -33,7 +33,7 @@ pub enum VestaDeskError {
     #[error("the application could not start: {0}")]
     Startup(String),
 
-    /// A file could not be read, written or moved: the app keeps the settings in memory.
+    /// A file or folder could not be created, read, written or moved: the app keeps the settings in memory.
     #[error("cannot access {}: {source}", path.display())]
     StorageIo {
         /// The file or directory involved.
@@ -69,14 +69,15 @@ impl VestaDeskError {
     /// ```
     /// use vesta_desk::error::{Severity, VestaDeskError};
     ///
-    /// assert_eq!(VestaDeskError::ConfigDirUnavailable.severity(), Severity::Fatal);
+    /// assert_eq!(VestaDeskError::Startup("no window".into()).severity(), Severity::Fatal);
     /// assert_eq!(VestaDeskError::UnsupportedLocale("xx".into()).severity(), Severity::Recoverable);
     /// ```
     #[must_use]
     pub fn severity(&self) -> Severity {
         match self {
-            Self::ConfigDirUnavailable | Self::Startup(_) => Severity::Fatal,
-            Self::StorageIo { .. }
+            Self::Startup(_) => Severity::Fatal,
+            Self::ConfigDirUnavailable
+            | Self::StorageIo { .. }
             | Self::SettingsCorrupt { .. }
             | Self::FontUnavailable(_)
             | Self::UnsupportedLocale(_) => Severity::Recoverable,
@@ -103,7 +104,7 @@ impl VestaDeskError {
 /// use vesta_desk::error::{VestaDeskError, exit_code};
 ///
 /// assert_eq!(exit_code(Ok(())), ExitCode::SUCCESS);
-/// assert_eq!(exit_code(Err(VestaDeskError::ConfigDirUnavailable)), ExitCode::FAILURE);
+/// assert_eq!(exit_code(Err(VestaDeskError::Startup("no window".into()))), ExitCode::FAILURE);
 /// ```
 #[must_use]
 pub fn exit_code(outcome: Result<()>) -> ExitCode {
