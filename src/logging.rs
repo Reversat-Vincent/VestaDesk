@@ -43,13 +43,17 @@ pub fn init() {
     }
 }
 
-/// Logs, at `info` level, the app version, the operating system and the settings directory.
-pub fn log_startup(settings_dir: &Path) {
+/// Logs, at `info` level, the app version, the operating system and the settings directory, or
+/// that the settings are temporary if there is no settings directory.
+pub fn log_startup(settings_dir: Option<&Path>) {
+    let settings = match settings_dir {
+        Some(dir) => format!("settings in {}", dir.display()),
+        None => "temporary settings, not saved".to_owned(),
+    };
     log::info!(
-        "VestaDesk {} on {} {}; settings in {}",
+        "VestaDesk {} on {} {}; {settings}",
         env!("CARGO_PKG_VERSION"),
         env::consts::OS,
         env::consts::ARCH,
-        settings_dir.display(),
     );
 }

@@ -46,8 +46,19 @@ pub fn run() -> ExitCode {
 
 /// Starts the app.
 ///
+/// If the settings directory cannot be found or created, the app logs a warning and keeps
+/// working with temporary settings.
+///
 /// Placeholder: the eframe bootstrap (VESTA-53) will open the main window here.
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "opening the main window (VESTA-53) will make starting fallible"
+)]
 fn start() -> error::Result<()> {
-    logging::log_startup(&storage::settings_dir()?);
+    let settings_dir = storage::settings_dir()
+        .and_then(storage::ensure_dir)
+        .inspect_err(error::VestaDeskError::report)
+        .ok();
+    logging::log_startup(settings_dir.as_deref());
     Ok(())
 }
