@@ -14,6 +14,8 @@ When a change makes it wrong or incomplete, update it in the same change, withou
 
 - Branch name: the issue title in kebab-case. Never include the issue key or a user prefix.
 - Commit messages: a plain summary. Never include the issue key.
+- Never commit without the developer's approval.
+- Never push: the developer pushes.
 - Never create a pull request: the user opens PRs manually on GitHub.
 - Checks, lint policy, code, and documentation conventions: `CONTRIBUTING.md`.
 
