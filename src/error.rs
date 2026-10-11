@@ -1,16 +1,14 @@
-//! Typed errors ([`VestaDeskError`]) and the crate-wide [`Result`] alias.
+//! Typed errors ([`AppError`]) and the crate-wide [`Result`] alias.
 //!
-//! Every expected failure has its own [`VestaDeskError`] variant with a clear description, so the
+//! Every expected failure has its own [`AppError`] variant with a clear description, so the
 //! app never has to crash on one. Each variant has a [`Severity`].
 
 use std::io;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use thiserror::Error;
-
 /// Crate-wide result type.
-pub type Result<T> = std::result::Result<T, VestaDeskError>;
+pub type Result<T> = std::result::Result<T, AppError>;
 
 /// How serious a failure is, which decides what the app does about it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,8 +21,8 @@ pub enum Severity {
 }
 
 /// An expected failure of the app.
-#[derive(Debug, Error)]
-pub enum VestaDeskError {
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
     /// The operating system gave no per-user configuration directory: the app keeps the settings in memory.
     #[error("the system provides no configuration directory")]
     ConfigDirUnavailable,
@@ -61,16 +59,16 @@ pub enum VestaDeskError {
     UnsupportedLocale(String),
 }
 
-impl VestaDeskError {
+impl AppError {
     /// Returns how serious this failure is.
     ///
     /// # Examples
     ///
     /// ```
-    /// use vesta_desk::error::{Severity, VestaDeskError};
+    /// use vesta_desk::error::{AppError, Severity};
     ///
-    /// assert_eq!(VestaDeskError::Startup("no window".into()).severity(), Severity::Fatal);
-    /// assert_eq!(VestaDeskError::UnsupportedLocale("xx".into()).severity(), Severity::Recoverable);
+    /// assert_eq!(AppError::Startup("no window".into()).severity(), Severity::Fatal);
+    /// assert_eq!(AppError::UnsupportedLocale("xx".into()).severity(), Severity::Recoverable);
     /// ```
     #[must_use]
     pub fn severity(&self) -> Severity {
@@ -101,10 +99,10 @@ impl VestaDeskError {
 /// ```
 /// use std::process::ExitCode;
 ///
-/// use vesta_desk::error::{VestaDeskError, exit_code};
+/// use vesta_desk::error::{AppError, exit_code};
 ///
 /// assert_eq!(exit_code(Ok(())), ExitCode::SUCCESS);
-/// assert_eq!(exit_code(Err(VestaDeskError::Startup("no window".into()))), ExitCode::FAILURE);
+/// assert_eq!(exit_code(Err(AppError::Startup("no window".into()))), ExitCode::FAILURE);
 /// ```
 #[must_use]
 pub fn exit_code(outcome: Result<()>) -> ExitCode {

@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use vesta_desk::error::VestaDeskError;
+use vesta_desk::error::AppError;
 use vesta_desk::storage::{ensure_dir, settings_dir_from};
 
 /// Without an override, the settings directory is the `VestaDesk` folder in the configuration directory.
@@ -39,7 +39,7 @@ fn settings_dir_fails_without_an_override_or_a_config_dir() {
     for override_dir in [None, Some(PathBuf::new())] {
         assert!(matches!(
             settings_dir_from(override_dir, None),
-            Err(VestaDeskError::ConfigDirUnavailable)
+            Err(AppError::ConfigDirUnavailable)
         ));
     }
 }
@@ -60,6 +60,6 @@ fn ensure_dir_fails_if_a_file_has_the_folder_name() {
     fs::write(&file, "").unwrap();
     assert!(matches!(
         ensure_dir(file.clone()),
-        Err(VestaDeskError::StorageIo { path, .. }) if path == file
+        Err(AppError::StorageIo { path, .. }) if path == file
     ));
 }

@@ -4,7 +4,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::error::{Result, VestaDeskError};
+use crate::error::{AppError, Result};
 
 /// Name of VestaDesk's folder inside the user's configuration directory.
 const APP_DIR: &str = "VestaDesk";
@@ -18,7 +18,7 @@ const SETTINGS_DIR_ENV: &str = "VESTADESK_SETTINGS_DIR";
 ///
 /// # Errors
 ///
-/// Returns [`VestaDeskError::ConfigDirUnavailable`] if the variable is unset or empty and the
+/// Returns [`AppError::ConfigDirUnavailable`] if the variable is unset or empty and the
 /// system provides no configuration directory.
 pub fn settings_dir() -> Result<PathBuf> {
     settings_dir_from(
@@ -32,7 +32,7 @@ pub fn settings_dir() -> Result<PathBuf> {
 ///
 /// # Errors
 ///
-/// Returns [`VestaDeskError::ConfigDirUnavailable`] if there is neither an override nor a
+/// Returns [`AppError::ConfigDirUnavailable`] if there is neither an override nor a
 /// configuration directory.
 ///
 /// # Examples
@@ -51,7 +51,7 @@ pub fn settings_dir() -> Result<PathBuf> {
 /// // With an override: that folder itself.
 /// let settings_dir = settings_dir_from(Some("custom".into()), Some(config_dir))?;
 /// assert_eq!(settings_dir, Path::new("custom"));
-/// # Ok::<(), vesta_desk::error::VestaDeskError>(())
+/// # Ok::<(), vesta_desk::error::AppError>(())
 /// ```
 pub fn settings_dir_from(
     override_dir: Option<PathBuf>,
@@ -61,7 +61,7 @@ pub fn settings_dir_from(
         Some(dir) if !dir.as_os_str().is_empty() => Ok(dir),
         _ => config_dir
             .map(|dir| dir.join(APP_DIR))
-            .ok_or(VestaDeskError::ConfigDirUnavailable),
+            .ok_or(AppError::ConfigDirUnavailable),
     }
 }
 
@@ -70,10 +70,10 @@ pub fn settings_dir_from(
 ///
 /// # Errors
 ///
-/// Returns [`VestaDeskError::StorageIo`] if the directory cannot be created.
+/// Returns [`AppError::StorageIo`] if the directory cannot be created.
 pub fn ensure_dir(dir: PathBuf) -> Result<PathBuf> {
     match fs::create_dir_all(&dir) {
         Ok(()) => Ok(dir),
-        Err(source) => Err(VestaDeskError::StorageIo { path: dir, source }),
+        Err(source) => Err(AppError::StorageIo { path: dir, source }),
     }
 }

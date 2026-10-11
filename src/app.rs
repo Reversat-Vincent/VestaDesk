@@ -1,1 +1,1 @@
-//! The `eframe::App` implementation (`VestaDeskApp`): the single state container and the frame lifecycle.
+//! The `eframe::App` implementation (`App`): the single state container and the frame lifecycle.

@@ -57,7 +57,7 @@ pub fn run() -> ExitCode {
 fn start() -> error::Result<()> {
     let settings_dir = storage::settings_dir()
         .and_then(storage::ensure_dir)
-        .inspect_err(error::VestaDeskError::report)
+        .inspect_err(error::AppError::report)
         .ok();
     logging::log_startup(settings_dir.as_deref());
     Ok(())
