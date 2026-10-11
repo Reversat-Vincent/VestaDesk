@@ -2,11 +2,13 @@
 
 VestaDesk is a native desktop super-app in Rust, built with [egui/eframe](https://github.com/emilk/egui) for Windows and Linux.
 
-> Early development: the app does not open a window yet. Progress is tracked in the Linear project "VestaDesk".
+> Early development: the app opens an empty window. Progress is tracked in the Linear project "VestaDesk".
 
 ## Requirements
 
 VestaDesk runs on Windows and Linux only; building it for any other system fails with a clear message.
+
+It needs a graphics driver with OpenGL 2.0 or later.
 
 On Linux, VestaDesk needs a Wayland or X11 desktop session and these libraries, which most desktop distributions already provide.
 
