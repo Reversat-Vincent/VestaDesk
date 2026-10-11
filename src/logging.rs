@@ -1,6 +1,6 @@
 //! Diagnostic logging: installs the `log` back end and writes the startup summary.
 //!
-//! By default the output is quiet: warnings and errors from every crate, plus Vesta's own
+//! By default the output is quiet: warnings and errors from every crate, plus VestaDesk's own
 //! information messages (the startup summary). Set the `RUST_LOG` environment variable to see
 //! more, for example `RUST_LOG=debug`; it uses the filter syntax of `env_logger`.
 
@@ -10,7 +10,7 @@ use std::path::Path;
 use env_logger::{Builder, DEFAULT_FILTER_ENV};
 
 /// The filter used when `RUST_LOG` is not set.
-const DEFAULT_FILTER: &str = "warn,vesta=info";
+const DEFAULT_FILTER: &str = "warn,vesta_desk=info";
 
 /// Returns the logger configuration for the filter `spec`, written in the `RUST_LOG` syntax, or
 /// for the default filter if `spec` is `None`.
@@ -19,9 +19,9 @@ const DEFAULT_FILTER: &str = "warn,vesta=info";
 ///
 /// ```
 /// use log::{Level, Log, Metadata};
-/// use vesta::logging;
+/// use vesta_desk::logging;
 ///
-/// let debug = Metadata::builder().level(Level::Debug).target("vesta").build();
+/// let debug = Metadata::builder().level(Level::Debug).target("vesta_desk").build();
 /// assert!(!logging::builder(None).build().enabled(&debug));
 /// assert!(logging::builder(Some("debug")).build().enabled(&debug));
 /// ```
@@ -46,7 +46,7 @@ pub fn init() {
 /// Logs, at `info` level, the app version, the operating system and the settings directory.
 pub fn log_startup(settings_dir: &Path) {
     log::info!(
-        "Vesta {} on {} {}; settings in {}",
+        "VestaDesk {} on {} {}; settings in {}",
         env!("CARGO_PKG_VERSION"),
         env::consts::OS,
         env::consts::ARCH,

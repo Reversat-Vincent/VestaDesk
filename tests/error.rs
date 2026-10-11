@@ -2,7 +2,7 @@
 
 use std::process::ExitCode;
 
-use vesta::error::{Severity, VestaError, exit_code};
+use vesta_desk::error::{Severity, VestaDeskError, exit_code};
 
 #[test]
 fn each_failure_has_the_expected_description_and_severity() {
@@ -10,17 +10,17 @@ fn each_failure_has_the_expected_description_and_severity() {
     let corrupt = format!("the settings file settings.json is corrupt: {parse_error}");
     let cases = [
         (
-            VestaError::ConfigDirUnavailable,
+            VestaDeskError::ConfigDirUnavailable,
             Severity::Fatal,
             "the system provides no configuration directory",
         ),
         (
-            VestaError::Startup("no window".into()),
+            VestaDeskError::Startup("no window".into()),
             Severity::Fatal,
             "the application could not start: no window",
         ),
         (
-            VestaError::StorageIo {
+            VestaDeskError::StorageIo {
                 path: "settings.json".into(),
                 source: std::io::Error::other("denied"),
             },
@@ -28,7 +28,7 @@ fn each_failure_has_the_expected_description_and_severity() {
             "cannot access settings.json: denied",
         ),
         (
-            VestaError::SettingsCorrupt {
+            VestaDeskError::SettingsCorrupt {
                 path: "settings.json".into(),
                 source: parse_error,
             },
@@ -36,12 +36,12 @@ fn each_failure_has_the_expected_description_and_severity() {
             &corrupt,
         ),
         (
-            VestaError::FontUnavailable("Consolas".into()),
+            VestaDeskError::FontUnavailable("Consolas".into()),
             Severity::Recoverable,
             "the font \"Consolas\" is unavailable",
         ),
         (
-            VestaError::UnsupportedLocale("xx".into()),
+            VestaDeskError::UnsupportedLocale("xx".into()),
             Severity::Recoverable,
             "the language \"xx\" is not supported",
         ),
@@ -54,7 +54,7 @@ fn each_failure_has_the_expected_description_and_severity() {
 
 #[test]
 fn exit_code_follows_the_start_outcome() {
-    let failure = VestaError::Startup("no window".into());
+    let failure = VestaDeskError::Startup("no window".into());
     assert_eq!(exit_code(Ok(())), ExitCode::SUCCESS);
     assert_eq!(exit_code(Err(failure)), ExitCode::FAILURE);
 }

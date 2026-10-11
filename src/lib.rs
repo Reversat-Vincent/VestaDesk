@@ -1,7 +1,7 @@
-//! ⚶ Vesta — a native desktop super-app in Rust, built with egui/eframe for Windows and Linux.
+//! VestaDesk — a native desktop super-app in Rust, built with egui/eframe for Windows and Linux.
 //!
 //! All application logic lives in this library crate so that `cargo doc` and the test suite
-//! cover it; the `vesta` binary only calls [`run`].
+//! cover it; the `vesta-desk` binary only calls [`run`].
 //!
 //! # Architecture
 //!
@@ -34,7 +34,7 @@ pub mod toast;
 
 use std::process::ExitCode;
 
-/// Starts Vesta and returns the process exit code.
+/// Starts VestaDesk and returns the process exit code.
 ///
 /// The logger is installed first. A failure that prevents the app from starting is logged and
 /// gives a failure exit code instead of a crash.

@@ -2,42 +2,42 @@
 
 use std::path::PathBuf;
 
-use crate::error::{Result, VestaError};
+use crate::error::{Result, VestaDeskError};
 
-/// Name of Vesta's folder inside the user's configuration directory.
-const APP_DIR: &str = "Vesta";
+/// Name of VestaDesk's folder inside the user's configuration directory.
+const APP_DIR: &str = "VestaDesk";
 
-/// Returns the directory where Vesta stores its settings: the `Vesta` folder inside the user's
-/// configuration directory (the application-data folder on Windows, `$XDG_CONFIG_HOME` or
+/// Returns the directory where VestaDesk stores its settings: the `VestaDesk` folder inside the
+/// user's configuration directory (the application-data folder on Windows, `$XDG_CONFIG_HOME` or
 /// `~/.config` on Linux).
 ///
 /// # Errors
 ///
-/// Returns [`VestaError::ConfigDirUnavailable`] if the system provides no configuration
+/// Returns [`VestaDeskError::ConfigDirUnavailable`] if the system provides no configuration
 /// directory.
 pub fn settings_dir() -> Result<PathBuf> {
     settings_dir_in(dirs::config_dir())
 }
 
-/// Returns Vesta's settings directory inside `config_dir`, the user's configuration directory.
+/// Returns VestaDesk's settings directory inside `config_dir`, the user's configuration directory.
 ///
 /// # Errors
 ///
-/// Returns [`VestaError::ConfigDirUnavailable`] if `config_dir` is `None`.
+/// Returns [`VestaDeskError::ConfigDirUnavailable`] if `config_dir` is `None`.
 ///
 /// # Examples
 ///
 /// ```
 /// use std::path::{Path, PathBuf};
 ///
-/// use vesta::storage::settings_dir_in;
+/// use vesta_desk::storage::settings_dir_in;
 ///
 /// let dir = settings_dir_in(Some(PathBuf::from("config")))?;
-/// assert_eq!(dir, Path::new("config/Vesta"));
-/// # Ok::<(), vesta::error::VestaError>(())
+/// assert_eq!(dir, Path::new("config/VestaDesk"));
+/// # Ok::<(), vesta_desk::error::VestaDeskError>(())
 /// ```
 pub fn settings_dir_in(config_dir: Option<PathBuf>) -> Result<PathBuf> {
     config_dir
         .map(|dir| dir.join(APP_DIR))
-        .ok_or(VestaError::ConfigDirUnavailable)
+        .ok_or(VestaDeskError::ConfigDirUnavailable)
 }

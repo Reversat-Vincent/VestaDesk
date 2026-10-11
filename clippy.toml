@@ -3,3 +3,6 @@
 allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-panic-in-tests = true
+
+# Docs write the product name VestaDesk without backticks; ".." keeps Clippy's default list.
+doc-valid-idents = ["VestaDesk", ".."]

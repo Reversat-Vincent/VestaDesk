@@ -1,10 +1,10 @@
 [package]
-name = "vesta"
+name = "vesta-desk"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
-description = "Vesta is a native desktop super-app in Rust (egui/eframe) for Windows and Linux."
-repository = "https://github.com/Reversat-Vincent/Vesta"
+description = "VestaDesk is a native desktop super-app in Rust (egui/eframe) for Windows and Linux."
+repository = "https://github.com/Reversat-Vincent/VestaDesk"
 readme = "README.md"
 keywords = ["gui", "egui", "desktop"]
 categories = ["gui"]

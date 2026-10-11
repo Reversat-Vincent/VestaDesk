@@ -1,6 +1,6 @@
 //! Windows and Linux specifics; the only place for `cfg(target_os)` branches.
 //!
-//! Vesta supports only Windows and Linux: building it for any other system fails with a clear message.
+//! VestaDesk supports only Windows and Linux: building it for any other system fails with a clear message.
 
 #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-compile_error!("Vesta supports only Windows and Linux.");
+compile_error!("VestaDesk supports only Windows and Linux.");

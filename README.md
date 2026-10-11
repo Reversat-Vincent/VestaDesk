@@ -1,14 +1,14 @@
-# ⚶ Vesta
+# VestaDesk
 
-Vesta is a native desktop super-app in Rust, built with [egui/eframe](https://github.com/emilk/egui) for Windows and Linux.
+VestaDesk is a native desktop super-app in Rust, built with [egui/eframe](https://github.com/emilk/egui) for Windows and Linux.
 
-> Early development: the app does not open a window yet. Progress is tracked in the Linear project "⚶ Vesta".
+> Early development: the app does not open a window yet. Progress is tracked in the Linear project "VestaDesk".
 
 ## Requirements
 
-Vesta runs on Windows and Linux only; building it for any other system fails with a clear message.
+VestaDesk runs on Windows and Linux only; building it for any other system fails with a clear message.
 
-On Linux, Vesta needs a Wayland or X11 desktop session and these libraries, which most desktop distributions already provide.
+On Linux, VestaDesk needs a Wayland or X11 desktop session and these libraries, which most desktop distributions already provide.
 
 ## Build
 
@@ -22,7 +22,7 @@ cargo doc --no-deps --open # build and open the developer documentation
 
 ## Logging
 
-By default Vesta logs a startup summary (version, operating system and settings folder), warnings and errors. Release builds on Windows have no console window, so their log output is not visible.
+By default VestaDesk logs a startup summary (version, operating system and settings folder), warnings and errors. Release builds on Windows have no console window, so their log output is not visible.
 Set `RUST_LOG` to see more:
 - In a Linux terminal: `RUST_LOG=debug cargo run`.
 - In PowerShell: `$env:RUST_LOG = "debug"; cargo run`.

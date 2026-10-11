@@ -1,6 +1,6 @@
-//! Typed errors ([`VestaError`]) and the crate-wide [`Result`] alias.
+//! Typed errors ([`VestaDeskError`]) and the crate-wide [`Result`] alias.
 //!
-//! Every expected failure has its own [`VestaError`] variant with a clear description, so the
+//! Every expected failure has its own [`VestaDeskError`] variant with a clear description, so the
 //! app never has to crash on one. Each variant has a [`Severity`].
 
 use std::io;
@@ -10,7 +10,7 @@ use std::process::ExitCode;
 use thiserror::Error;
 
 /// Crate-wide result type.
-pub type Result<T> = std::result::Result<T, VestaError>;
+pub type Result<T> = std::result::Result<T, VestaDeskError>;
 
 /// How serious a failure is, which decides what the app does about it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,7 +24,7 @@ pub enum Severity {
 
 /// An expected failure of the app.
 #[derive(Debug, Error)]
-pub enum VestaError {
+pub enum VestaDeskError {
     /// The operating system gave no per-user configuration directory.
     #[error("the system provides no configuration directory")]
     ConfigDirUnavailable,
@@ -61,16 +61,16 @@ pub enum VestaError {
     UnsupportedLocale(String),
 }
 
-impl VestaError {
+impl VestaDeskError {
     /// Returns how serious this failure is.
     ///
     /// # Examples
     ///
     /// ```
-    /// use vesta::error::{Severity, VestaError};
+    /// use vesta_desk::error::{Severity, VestaDeskError};
     ///
-    /// assert_eq!(VestaError::ConfigDirUnavailable.severity(), Severity::Fatal);
-    /// assert_eq!(VestaError::UnsupportedLocale("xx".into()).severity(), Severity::Recoverable);
+    /// assert_eq!(VestaDeskError::ConfigDirUnavailable.severity(), Severity::Fatal);
+    /// assert_eq!(VestaDeskError::UnsupportedLocale("xx".into()).severity(), Severity::Recoverable);
     /// ```
     #[must_use]
     pub fn severity(&self) -> Severity {
@@ -100,10 +100,10 @@ impl VestaError {
 /// ```
 /// use std::process::ExitCode;
 ///
-/// use vesta::error::{VestaError, exit_code};
+/// use vesta_desk::error::{VestaDeskError, exit_code};
 ///
 /// assert_eq!(exit_code(Ok(())), ExitCode::SUCCESS);
-/// assert_eq!(exit_code(Err(VestaError::ConfigDirUnavailable)), ExitCode::FAILURE);
+/// assert_eq!(exit_code(Err(VestaDeskError::ConfigDirUnavailable)), ExitCode::FAILURE);
 /// ```
 #[must_use]
 pub fn exit_code(outcome: Result<()>) -> ExitCode {

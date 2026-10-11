@@ -1,6 +1,6 @@
-# Contributing to Vesta
+# Contributing to VestaDesk
 
-Work is planned in the Linear project ⚶ Vesta (team `VESTA`).
+Work is planned in the Linear project VestaDesk (team `VESTA`).
 
 ## Checks
 
@@ -66,7 +66,7 @@ Fix the code when you can. Otherwise, suppress the lint on the smallest item pos
 
 The developer documentation is generated from the code by `cargo doc`. It is mainly intended for developers, so it must be clear, understandable and easy to read.
 
-- The crate docs in `src/lib.rs` are the front page: what Vesta is and how its modules fit together, with a link to each top-level module.
+- The crate docs in `src/lib.rs` are the front page: what VestaDesk is and how its modules fit together, with a link to each top-level module.
 - Every doc comment starts with a one-sentence summary.
 - A public function that returns a `Result` has an `# Errors` section that links each error it returns and says when.
 - A public function that returns a value computed only from its arguments has an `# Examples` section. Examples use `?` rather than `unwrap` and run as tests with `cargo test --doc`.
