@@ -40,7 +40,7 @@ fn rust_log_can_hide_what_is_shown_by_default() {
 #[test]
 fn init_can_be_called_twice() {
     // A test logger goes first, so that the warning logged by `init` is captured by the harness.
-    let _ = builder(None).is_test(true).try_init();
+    builder(None).is_test(true).try_init().unwrap();
 
     vesta_desk::logging::init();
     vesta_desk::logging::init();
