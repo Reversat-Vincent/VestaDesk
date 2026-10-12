@@ -20,12 +20,25 @@ fn each_failure_has_the_expected_description_and_severity() {
             "the application could not start: no window",
         ),
         (
+            AppError::LoggerAlreadyInstalled,
+            Severity::Recoverable,
+            "a logger is already installed; keeping it",
+        ),
+        (
             AppError::StorageIo {
                 path: "settings.json".into(),
                 source: std::io::Error::other("denied"),
             },
             Severity::Recoverable,
             "cannot access settings.json: denied",
+        ),
+        (
+            AppError::DirNotSynced {
+                path: "VestaDesk".into(),
+                source: std::io::Error::other("not supported"),
+            },
+            Severity::Recoverable,
+            "cannot sync the folder VestaDesk: not supported; a power cut could undo the last save in it",
         ),
         (
             AppError::SettingsCorrupt {
