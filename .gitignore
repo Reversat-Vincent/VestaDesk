@@ -23,5 +23,5 @@ rustc-ice-*.txt
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Interrupted atomic writes (see storage::atomic)
+# Interrupted atomic writes (see storage::write_atomic)
 *.tmp

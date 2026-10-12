@@ -31,10 +31,26 @@ pub enum AppError {
     #[error("the application could not start: {0}")]
     Startup(String),
 
-    /// A file or folder could not be created, read, written or moved: the app keeps the settings in memory.
+    /// A logger was already installed when the app tried to install its own: the app keeps the existing one.
+    #[error("a logger is already installed; keeping it")]
+    LoggerAlreadyInstalled,
+
+    /// A file or folder could not be created, read, written, moved or removed: the app keeps the settings in memory.
     #[error("cannot access {}: {source}", path.display())]
     StorageIo {
         /// The file or directory involved.
+        path: PathBuf,
+        /// The underlying system error.
+        source: io::Error,
+    },
+
+    /// A folder could not be written to disk after a save in it: the file is saved, but a power cut could undo the save.
+    #[error(
+        "cannot sync the folder {}: {source}; a power cut could undo the last save in it",
+        path.display()
+    )]
+    DirNotSynced {
+        /// The folder.
         path: PathBuf,
         /// The underlying system error.
         source: io::Error,
@@ -75,7 +91,9 @@ impl AppError {
         match self {
             Self::Startup(_) => Severity::Fatal,
             Self::ConfigDirUnavailable
+            | Self::LoggerAlreadyInstalled
             | Self::StorageIo { .. }
+            | Self::DirNotSynced { .. }
             | Self::SettingsCorrupt { .. }
             | Self::FontUnavailable(_)
             | Self::UnsupportedLocale(_) => Severity::Recoverable,

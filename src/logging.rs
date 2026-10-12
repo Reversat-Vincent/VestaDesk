@@ -9,6 +9,8 @@ use std::path::Path;
 
 use env_logger::{Builder, DEFAULT_FILTER_ENV};
 
+use crate::error::AppError;
+
 /// The filter used when `RUST_LOG` is not set.
 const DEFAULT_FILTER: &str = "warn,vesta_desk=info";
 
@@ -34,12 +36,12 @@ pub fn builder(spec: Option<&str>) -> Builder {
 
 /// Installs the logger, filtered by the `RUST_LOG` environment variable if it is set.
 ///
-/// If a logger is already installed, it is kept and a warning is logged.
+/// If a logger is already installed, it is kept and [`AppError::LoggerAlreadyInstalled`] is reported.
 pub fn init() {
     let spec = env::var(DEFAULT_FILTER_ENV).ok();
     match builder(spec.as_deref()).try_init() {
         Ok(()) => log::debug!("log filter: {}", spec.as_deref().unwrap_or(DEFAULT_FILTER)),
-        Err(_) => log::warn!("a logger is already installed; keeping it"),
+        Err(_) => AppError::LoggerAlreadyInstalled.report(),
     }
 }
 

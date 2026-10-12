@@ -47,12 +47,18 @@ pub fn run() -> ExitCode {
 /// Starts the app and runs it until its window is closed.
 ///
 /// If the settings directory cannot be found or created, the app logs a warning and keeps
-/// working with temporary settings.
+/// working with temporary settings. Otherwise, it removes the temporary files that interrupted
+/// saves left there.
 fn start() -> error::Result<()> {
     let settings_dir = storage::settings_dir()
         .and_then(storage::ensure_dir)
         .inspect_err(error::AppError::report)
         .ok();
+    if let Some(dir) = &settings_dir
+        && let Err(error) = storage::remove_temp_files(dir)
+    {
+        error.report();
+    }
     logging::log_startup(settings_dir.as_deref());
     app::run()
 }
