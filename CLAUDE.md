@@ -14,6 +14,7 @@ When a change makes it wrong or incomplete, update it in the same change, withou
 ## Workflow
 
 - Branch name: the issue title in kebab-case. Never include the issue key or a user prefix.
+- A ticket that implies too much code at once is split into sub-tickets. The main ticket has one branch, named after it, and its sub-tickets are done one by one on that branch.
 - Commit messages: a plain summary. Never include the issue key.
 - Never commit without the developer's approval.
 - Never push: the developer pushes.
