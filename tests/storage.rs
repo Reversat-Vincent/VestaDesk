@@ -2,13 +2,65 @@
 //! user's configuration directory; finding it fails only without either, and it is created if missing.
 //! A save replaces the file in one step and leaves no temporary file, even when it fails, and the
 //! temporary files of interrupted saves are removed at startup.
+//! A document is saved as indented JSON that starts with its format version. It loads back with
+//! defaults for a missing file or field, ignores unknown fields, upgrades older formats, and
+//! rejects a damaged or oversized file.
 #![cfg(test)]
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use vesta_desk::error::AppError;
-use vesta_desk::storage::{ensure_dir, remove_temp_files, settings_dir_from, write_atomic};
+use vesta_desk::storage::{
+    Document, MAX_DOCUMENT_SIZE, ensure_dir, load, remove_temp_files, save, settings_dir_from,
+    write_atomic,
+};
+
+/// A test document in its second format; the first one named `text` what is now `body`.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+struct Note {
+    body: String,
+    pinned: bool,
+}
+
+/// A new note is pinned, so that the tests can tell the note's defaults from those of its field types.
+impl Default for Note {
+    fn default() -> Self {
+        Self {
+            body: String::new(),
+            pinned: true,
+        }
+    }
+}
+
+impl Document for Note {
+    const FILE_NAME: &'static str = "note.json";
+    const VERSION: u32 = 2;
+
+    fn migrate(version: u32, fields: &mut Map<String, Value>) {
+        if version < 2
+            && let Some(text) = fields.remove("text")
+        {
+            fields.insert("body".to_owned(), text);
+        }
+    }
+}
+
+/// A note with the text `body` and default values otherwise.
+fn note(body: &str) -> Note {
+    Note {
+        body: body.to_owned(),
+        ..Note::default()
+    }
+}
+
+/// Writes `json` as the note file in `dir`.
+fn write_note(dir: &Path, json: &str) {
+    fs::write(dir.join(Note::FILE_NAME), json).unwrap();
+}
 
 /// The names of the entries in `dir`, sorted.
 fn names(dir: &Path) -> Vec<String> {
@@ -185,4 +237,112 @@ fn startup_removes_the_temporary_files_of_interrupted_saves() {
         .unwrap();
     let log = String::from_utf8_lossy(&output.stderr);
     assert!(!leftover.exists(), "{log}");
+}
+
+#[test]
+fn a_saved_document_starts_with_its_version_and_loads_back() {
+    let dir = tempfile::tempdir().unwrap();
+    let unpinned = Note {
+        body: "hello".to_owned(),
+        pinned: false,
+    };
+    save(dir.path(), &unpinned).unwrap();
+    let json = fs::read_to_string(dir.path().join("note.json")).unwrap();
+    assert_eq!(
+        json,
+        "{\n  \"version\": 2,\n  \"body\": \"hello\",\n  \"pinned\": false\n}\n"
+    );
+    assert_eq!(load::<Note>(dir.path()).unwrap(), unpinned);
+}
+
+#[test]
+fn a_missing_file_gives_the_default_document() {
+    let dir = tempfile::tempdir().unwrap();
+    assert_eq!(load::<Note>(dir.path()).unwrap(), Note::default());
+}
+
+#[test]
+fn missing_fields_take_their_default_and_unknown_ones_are_ignored() {
+    let dir = tempfile::tempdir().unwrap();
+    write_note(
+        dir.path(),
+        r#"{"version": 2, "body": "hello", "color": "red"}"#,
+    );
+    assert_eq!(load::<Note>(dir.path()).unwrap(), note("hello"));
+}
+
+#[test]
+fn a_file_in_an_older_format_is_upgraded() {
+    let dir = tempfile::tempdir().unwrap();
+    write_note(dir.path(), r#"{"version": 1, "text": "hello"}"#);
+    assert_eq!(load::<Note>(dir.path()).unwrap(), note("hello"));
+}
+
+/// A file from a newer version loads with the fields this version knows, and a file without a version, such as one written by hand, loads too.
+#[test]
+fn a_file_from_a_newer_version_or_without_a_version_loads() {
+    let dir = tempfile::tempdir().unwrap();
+    for json in [
+        r#"{"version": 3, "body": "hello", "tags": ["a"]}"#,
+        r#"{"body": "hello"}"#,
+    ] {
+        write_note(dir.path(), json);
+        let result = load::<Note>(dir.path());
+        assert_eq!(
+            result.as_ref().ok(),
+            Some(&note("hello")),
+            "{json:?} -> {result:?}"
+        );
+    }
+}
+
+/// A file that is not a valid document, such as an empty or cut-off one, or one with a value of the wrong type, is rejected as corrupt.
+#[test]
+fn a_damaged_file_is_rejected_as_corrupt() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("note.json");
+    for json in [
+        "",
+        "not json",
+        r#"{"body": "hello""#,
+        "[1, 2]",
+        r#"{"body": 3}"#,
+        r#"{"version": "two"}"#,
+    ] {
+        fs::write(&file, json).unwrap();
+        let result = load::<Note>(dir.path());
+        assert!(
+            matches!(&result, Err(AppError::DocumentCorrupt { path, .. }) if *path == file),
+            "{json:?} -> {result:?}"
+        );
+    }
+}
+
+/// A file of exactly the size limit loads, and a larger one is rejected.
+#[test]
+fn a_file_over_the_size_limit_is_rejected() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("note.json");
+    let padding = usize::try_from(MAX_DOCUMENT_SIZE).unwrap() - 2;
+    fs::write(&file, format!("{{}}{}", " ".repeat(padding))).unwrap();
+    assert_eq!(load::<Note>(dir.path()).unwrap(), Note::default());
+    fs::File::options()
+        .write(true)
+        .open(&file)
+        .unwrap()
+        .set_len(MAX_DOCUMENT_SIZE + 1)
+        .unwrap();
+    assert!(matches!(
+        load::<Note>(dir.path()),
+        Err(AppError::DocumentTooLarge { path, size, limit })
+            if path == file && size == MAX_DOCUMENT_SIZE + 1 && limit == MAX_DOCUMENT_SIZE
+    ));
+}
+
+/// Some editors start a UTF-8 file with a byte order mark, which is skipped.
+#[test]
+fn a_byte_order_mark_is_skipped() {
+    let dir = tempfile::tempdir().unwrap();
+    write_note(dir.path(), "\u{feff}{\"body\": \"hello\"}");
+    assert_eq!(load::<Note>(dir.path()).unwrap(), note("hello"));
 }
