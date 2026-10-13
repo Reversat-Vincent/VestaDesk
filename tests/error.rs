@@ -7,7 +7,7 @@ use vesta_desk::error::{AppError, Severity, exit_code};
 #[test]
 fn each_failure_has_the_expected_description_and_severity() {
     let parse_error = serde_json::from_str::<u8>("not json").unwrap_err();
-    let corrupt = format!("the settings file settings.json is corrupt: {parse_error}");
+    let corrupt = format!("the file settings.json is corrupt: {parse_error}");
     let cases = [
         (
             AppError::ConfigDirUnavailable,
@@ -41,12 +41,21 @@ fn each_failure_has_the_expected_description_and_severity() {
             "cannot sync the folder VestaDesk: not supported; a power cut could undo the last save in it",
         ),
         (
-            AppError::SettingsCorrupt {
+            AppError::DocumentCorrupt {
                 path: "settings.json".into(),
                 source: parse_error,
             },
             Severity::Recoverable,
             &corrupt,
+        ),
+        (
+            AppError::DocumentTooLarge {
+                path: "settings.json".into(),
+                size: 2_000_000,
+                limit: 1_048_576,
+            },
+            Severity::Recoverable,
+            "the file settings.json is too large: 2000000 bytes, over the limit of 1048576 bytes",
         ),
         (
             AppError::FontUnavailable("Consolas".into()),

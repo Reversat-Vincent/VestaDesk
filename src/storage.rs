@@ -1,4 +1,4 @@
-//! Persistence: OS config directory resolution, atomic writes ([`write_atomic`]) and JSON stores.
+//! Persistence: the settings directory ([`settings_dir`]), atomic writes ([`write_atomic`]) and versioned JSON documents ([`Document`]).
 //!
 //! # Safe saving
 //!
@@ -12,18 +12,35 @@
 //!   power cut. If that flush fails, the app logs a warning.
 //! - On Windows, a power cut right after a save can bring back the old file. While another
 //!   program, such as an antivirus, briefly holds the file, the rename is retried for about a second.
+//!
+//! # Documents
+//!
+//! A [`Document`], such as the [`Settings`](crate::settings::Settings), is saved by [`save`] in the
+//! settings directory as indented JSON that starts with its format version. [`load`] reads it back:
+//!
+//! - A missing file gives the default document, and a missing field its default value.
+//! - Unknown fields are ignored, so a file from a newer version still loads.
+//! - [`Document::migrate`] upgrades a file in an older format, then [`Document::correct`] fixes out-of-range values.
+//! - A file over [`MAX_DOCUMENT_SIZE`], or whose content is not a valid document, is rejected.
 
 use std::env;
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::Duration;
 
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_json::{Map, Value};
+
 use crate::error::{AppError, Result};
 use crate::platform;
+
+/// The size of the largest file that [`load`] reads, in bytes: 1 MiB.
+pub const MAX_DOCUMENT_SIZE: u64 = 1024 * 1024;
 
 /// Name of VestaDesk's folder inside the user's configuration directory.
 const APP_DIR: &str = "VestaDesk";
@@ -36,6 +53,27 @@ const TEMP_SUFFIX: &str = ".vestadesk.tmp";
 
 /// The waits, in milliseconds, between attempts to replace a file that another program holds: 1.27 seconds in all.
 const RETRY_DELAYS_MS: [u64; 7] = [10, 20, 40, 80, 160, 320, 640];
+
+/// The byte order mark that some editors write at the start of a UTF-8 file, which JSON does not allow.
+const UTF8_BOM: &[u8] = b"\xEF\xBB\xBF";
+
+/// A file of preferences that [`save`] writes and [`load`] reads, as described in [Documents](crate::storage#documents).
+///
+/// Implement it on a struct marked `#[serde(default)]`, so that a field missing from the file takes
+/// its default value. The field name `version` is reserved for the format version.
+pub trait Document: Default + Serialize + DeserializeOwned {
+    /// The name of the file in the settings directory, such as `settings.json`.
+    const FILE_NAME: &'static str;
+
+    /// The format version saved in the file; increase it when older files need [`migrate`](Document::migrate) to be read correctly.
+    const VERSION: u32;
+
+    /// Upgrades `fields`, read from a file in the older format `version`, to the current format; the default does nothing.
+    fn migrate(_version: u32, _fields: &mut Map<String, Value>) {}
+
+    /// Corrects out-of-range values once [`load`] has read the document; the default does nothing.
+    fn correct(&mut self) {}
+}
 
 /// Returns the directory where VestaDesk stores its settings, chosen by [`settings_dir_from`] from
 /// the `VESTADESK_SETTINGS_DIR` environment variable and the user's configuration directory (the
@@ -142,6 +180,92 @@ pub fn remove_temp_files(dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Reads the document `T` from its file in `dir`, or returns the default document if the file does not exist.
+///
+/// See [Documents](crate::storage#documents) for how the file is read.
+///
+/// # Errors
+///
+/// Returns [`AppError::DocumentTooLarge`] if the file is over [`MAX_DOCUMENT_SIZE`],
+/// [`AppError::DocumentCorrupt`] if its content is not a valid document, and
+/// [`AppError::StorageIo`] if it cannot be read.
+pub fn load<T: Document>(dir: &Path) -> Result<T> {
+    let path = dir.join(T::FILE_NAME);
+    let Some(contents) = read_document(&path)? else {
+        log::debug!("{} does not exist; using the defaults", path.display());
+        return Ok(T::default());
+    };
+    let json = contents.strip_prefix(UTF8_BOM).unwrap_or(&contents);
+    let mut fields: Map<String, Value> = serde_json::from_slice(json).map_err(corrupt(&path))?;
+    // A file without a version, such as one written by hand, is read in the current format.
+    let version = match fields.remove("version") {
+        Some(version) => serde_json::from_value(version).map_err(corrupt(&path))?,
+        None => T::VERSION,
+    };
+    if version < T::VERSION {
+        T::migrate(version, &mut fields);
+    } else if version > T::VERSION {
+        log::info!(
+            "{} comes from a newer version of VestaDesk: the preferences this version does not know are ignored",
+            path.display()
+        );
+    }
+    let mut document: T = serde_json::from_value(Value::Object(fields)).map_err(corrupt(&path))?;
+    document.correct();
+    Ok(document)
+}
+
+/// Saves `document` to its file in `dir` with [`write_atomic`], as indented JSON that starts with its format version.
+///
+/// # Errors
+///
+/// Returns [`AppError::StorageIo`] if the file cannot be saved; it is then left untouched.
+pub fn save<T: Document>(dir: &Path, document: &T) -> Result<()> {
+    let path = dir.join(T::FILE_NAME);
+    let versioned = Versioned {
+        version: T::VERSION,
+        document,
+    };
+    let mut json = serde_json::to_vec_pretty(&versioned)
+        .map_err(io::Error::from)
+        .map_err(io_error(&path))?;
+    json.push(b'\n');
+    write_atomic(&path, &json)
+}
+
+/// A document as [`save`] writes it: its format version, then its fields.
+#[derive(Serialize)]
+struct Versioned<'a, T> {
+    /// The format version of the document.
+    version: u32,
+    /// The document, whose fields follow the version.
+    #[serde(flatten)]
+    document: &'a T,
+}
+
+/// Reads the file at `path`, which must not be over [`MAX_DOCUMENT_SIZE`], or returns `None` if it does not exist.
+fn read_document(path: &Path) -> Result<Option<Vec<u8>>> {
+    let file = match File::open(path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(io_error(path)(error)),
+    };
+    let size = file.metadata().map_err(io_error(path))?.len();
+    if size > MAX_DOCUMENT_SIZE {
+        return Err(AppError::DocumentTooLarge {
+            path: path.to_owned(),
+            size,
+            limit: MAX_DOCUMENT_SIZE,
+        });
+    }
+    let mut contents = Vec::new();
+    // The limit also holds if the file grew after its size was checked.
+    file.take(MAX_DOCUMENT_SIZE)
+        .read_to_end(&mut contents)
+        .map_err(io_error(path))?;
+    Ok(Some(contents))
+}
+
 /// Returns whether `path` names a temporary file that [`write_atomic`] creates.
 fn is_temp_file(path: &Path) -> bool {
     path.as_os_str()
@@ -196,6 +320,14 @@ fn discard_temp_file(temp: &Path) {
 /// Returns a function that wraps an I/O error on `path` in [`AppError::StorageIo`].
 fn io_error(path: &Path) -> impl FnOnce(io::Error) -> AppError {
     move |source| AppError::StorageIo {
+        path: path.to_owned(),
+        source,
+    }
+}
+
+/// Returns a function that wraps an error in the content of the document file at `path` in [`AppError::DocumentCorrupt`].
+fn corrupt(path: &Path) -> impl FnOnce(serde_json::Error) -> AppError {
+    move |source| AppError::DocumentCorrupt {
         path: path.to_owned(),
         source,
     }

@@ -56,14 +56,27 @@ pub enum AppError {
         source: io::Error,
     },
 
-    /// A settings file exists but its content cannot be understood: the app starts from the
-    /// default settings.
-    #[error("the settings file {} is corrupt: {source}", path.display())]
-    SettingsCorrupt {
-        /// The settings file.
+    /// A [`Document`](crate::storage::Document) file exists but its content cannot be understood: the app uses the defaults instead.
+    #[error("the file {} is corrupt: {source}", path.display())]
+    DocumentCorrupt {
+        /// The document file.
         path: PathBuf,
         /// The underlying parse error.
         source: serde_json::Error,
+    },
+
+    /// A [`Document`](crate::storage::Document) file is too large to be read: the app uses the defaults instead.
+    #[error(
+        "the file {} is too large: {size} bytes, over the limit of {limit} bytes",
+        path.display()
+    )]
+    DocumentTooLarge {
+        /// The document file.
+        path: PathBuf,
+        /// The size of the file, in bytes.
+        size: u64,
+        /// The size of the largest file read, in bytes.
+        limit: u64,
     },
 
     /// A font could not be found or loaded: the app falls back to the bundled fonts.
@@ -94,7 +107,8 @@ impl AppError {
             | Self::LoggerAlreadyInstalled
             | Self::StorageIo { .. }
             | Self::DirNotSynced { .. }
-            | Self::SettingsCorrupt { .. }
+            | Self::DocumentCorrupt { .. }
+            | Self::DocumentTooLarge { .. }
             | Self::FontUnavailable(_)
             | Self::UnsupportedLocale(_) => Severity::Recoverable,
         }
