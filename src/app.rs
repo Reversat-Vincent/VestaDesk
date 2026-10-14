@@ -68,17 +68,12 @@ impl eframe::App for App {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        show(ui, &self.state, &mut self.actions);
+        layout::show(ui, &self.state, &mut self.actions);
         if !self.actions.is_empty() {
             // egui redraws by itself after input, but actions from a frame without input (such as a timer) need this to show.
             ui.ctx().request_repaint();
         }
     }
-}
-
-/// Draws the window from the app's data and collects the actions the user triggers.
-fn show(ui: &mut egui::Ui, _state: &AppState, _actions: &mut Vec<AppAction>) {
-    layout::show(ui, |_| {});
 }
 
 /// Returns the options of the main window: its title, size and minimum size, centered on the screen.
