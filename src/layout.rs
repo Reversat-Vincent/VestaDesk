@@ -4,8 +4,17 @@
 //! activity bar on the left, above it. The activity bar has a fixed width that the user cannot
 //! change. The page fills the rest and scrolls when it does not fit, so all three areas stay usable
 //! down to the [minimum window size](crate::app::MIN_WINDOW_SIZE).
+//!
+//! The activity bar has one item per page, in the order of [`Route::ALL`]; until pages have icons,
+//! each item shows the first letter of its page's title. Clicking an item opens its page, and the
+//! item of the open page is highlighted. Each page keeps its own scroll position.
 
-use egui::{CentralPanel, Panel, Rect, ScrollArea, Ui};
+use egui::{Button, CentralPanel, Panel, Rect, ScrollArea, Ui};
+
+use crate::action::AppAction;
+use crate::pages;
+use crate::router::Route;
+use crate::state::AppState;
 
 /// The width of the activity bar, in points.
 pub const ACTIVITY_BAR_WIDTH: f32 = 48.0;
@@ -24,8 +33,9 @@ pub struct Areas {
     pub status_bar: Rect,
 }
 
-/// Draws the three areas over all of `ui`, shows `page` in the central one, and returns where it placed them.
-pub fn show(ui: &mut Ui, page: impl FnOnce(&mut Ui)) -> Areas {
+/// Draws the three areas over all of `ui` from `state`, collects the user's actions in `actions`, and returns where it placed the areas.
+pub fn show(ui: &mut Ui, state: &AppState, actions: &mut Vec<AppAction>) -> Areas {
+    let route = state.route();
     // A panel takes its side of the space the earlier panels left: the status bar goes first to span the whole width.
     let status_bar = Panel::bottom("status_bar")
         .resizable(false)
@@ -36,12 +46,15 @@ pub fn show(ui: &mut Ui, page: impl FnOnce(&mut Ui)) -> Areas {
     let activity_bar = Panel::left("activity_bar")
         .resizable(false)
         .exact_size(ACTIVITY_BAR_WIDTH)
-        .show(ui, |_| {})
+        .show(ui, |ui| menu(ui, route, actions))
         .response
         .rect;
     let page = CentralPanel::default()
         .show(ui, |ui| {
-            ScrollArea::both().auto_shrink(false).show(ui, page)
+            ScrollArea::both()
+                .id_salt(route)
+                .auto_shrink(false)
+                .show(ui, |ui| pages::show(ui, route))
         })
         .response
         .rect;
@@ -50,4 +63,24 @@ pub fn show(ui: &mut Ui, page: impl FnOnce(&mut Ui)) -> Areas {
         page,
         status_bar,
     }
+}
+
+/// Draws the item of each page, highlights the one of `current`, and pushes [`AppAction::Navigate`] when the user clicks one.
+fn menu(ui: &mut Ui, current: Route, actions: &mut Vec<AppAction>) {
+    ui.vertical_centered_justified(|ui| {
+        for &route in Route::ALL {
+            let item = Button::selectable(route == current, initial(route.title()));
+            if ui.add(item).clicked() {
+                actions.push(AppAction::Navigate(route));
+            }
+        }
+    });
+}
+
+/// Returns the first letter of `title`.
+fn initial(title: &str) -> &str {
+    title
+        .chars()
+        .next()
+        .map_or(title, |letter| &title[..letter.len_utf8()])
 }
