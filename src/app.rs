@@ -22,6 +22,7 @@ use egui::Vec2;
 
 use crate::action::AppAction;
 use crate::error::{AppError, Result};
+use crate::layout;
 use crate::state::AppState;
 
 /// The app's name, shown as the window title.
@@ -77,7 +78,7 @@ impl eframe::App for App {
 
 /// Draws the window from the app's data and collects the actions the user triggers.
 fn show(ui: &mut egui::Ui, _state: &AppState, _actions: &mut Vec<AppAction>) {
-    egui::CentralPanel::default().show(ui, |_| {});
+    layout::show(ui, |_| {});
 }
 
 /// Returns the options of the main window: its title, size and minimum size, centered on the screen.

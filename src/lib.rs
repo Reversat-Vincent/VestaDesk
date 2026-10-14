@@ -9,7 +9,7 @@
 //! and pushes [`action`]s; the app applies them, routes between [`pages`] via [`router`], and
 //! persists preferences through [`storage`] and [`settings`].
 //!
-//! Around the pages, [`shell`] draws the activity bar and status bar, [`toast`] shows
+//! Around the pages, [`layout`] draws the activity bar and status bar, [`toast`] shows
 //! notifications, and [`commands`] triggers actions from the command palette and keyboard
 //! shortcuts. [`i18n`], [`fonts`] and [`theme`] provide the translations, fonts and colours.
 //! [`error`] defines the expected failures and how each is handled, [`logging`] records
@@ -21,12 +21,12 @@ pub mod commands;
 pub mod error;
 pub mod fonts;
 pub mod i18n;
+pub mod layout;
 pub mod logging;
 pub mod pages;
 pub mod platform;
 pub mod router;
 pub mod settings;
-pub mod shell;
 pub mod state;
 pub mod storage;
 pub mod theme;
