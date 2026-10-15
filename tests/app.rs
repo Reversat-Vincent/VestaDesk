@@ -1,7 +1,11 @@
-//! The main window has the app's title and a minimum size, the app starts from the default data,
-//! and a window that cannot be created is reported as an error.
+//! The main window has the app's title and a minimum size, the app starts from the default data and
+//! applies the actions sent to it on the next frame, and a window that cannot be created is reported as an error.
 
+use eframe::App as _;
+use egui::{Context, RawInput};
+use vesta_desk::action::AppAction;
 use vesta_desk::app::{App, MIN_WINDOW_SIZE, WINDOW_SIZE, native_options};
+use vesta_desk::router::Route;
 use vesta_desk::state::AppState;
 
 #[test]
@@ -15,7 +19,24 @@ fn the_window_has_the_app_title_and_a_minimum_size() {
 /// Creating the app opens no window, so tests can check its data.
 #[test]
 fn the_app_starts_from_the_default_data() {
-    assert_eq!(App::default().state(), &AppState::default());
+    assert_eq!(App::new(Context::default()).state(), &AppState::default());
+}
+
+/// An action sent to the app takes effect on the next frame, which eframe's test frame runs without a window.
+#[test]
+fn the_app_applies_an_action_sent_to_it_on_the_next_frame() {
+    let ctx = Context::default();
+    let mut app = App::new(ctx.clone());
+    app.sender()
+        .send(AppAction::Navigate(Route::About))
+        .unwrap();
+    let mut frame = eframe::Frame::_new_kittest();
+    ctx.run_ui(RawInput::default(), |ui| {
+        app.logic(ui.ctx(), &mut frame);
+        app.ui(ui, &mut frame);
+    })
+    .drop_without_applying_deltas();
+    assert_eq!(app.state().route(), Route::About);
 }
 
 /// Without a display the window cannot be created: the app logs the error and exits with a failure status instead of crashing.

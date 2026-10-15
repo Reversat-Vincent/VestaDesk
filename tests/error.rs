@@ -20,6 +20,11 @@ fn each_failure_has_the_expected_description_and_severity() {
             "the application could not start: no window",
         ),
         (
+            AppError::AppClosed,
+            Severity::Recoverable,
+            "the application has closed, so it cannot apply the action",
+        ),
+        (
             AppError::LoggerAlreadyInstalled,
             Severity::Recoverable,
             "a logger is already installed; keeping it",
