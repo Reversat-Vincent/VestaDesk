@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="500" viewBox="0 0 1120 500" style="max-width: 100%; height: auto" role="img" aria-labelledby="ss-title ss-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <title id="ss-title">Safe saving</title>
+    <desc id="ss-desc">write_atomic saves a file in three steps: it writes the contents to a new temporary file in the same folder and flushes it to disk, renames it over the old file in a single step, then, on Linux, flushes the folder so that a power cut cannot bring back the old file. If the app stops before the rename, the folder holds the old file and a temporary file that the next startup deletes; after the rename, it holds the new file. If writing or renaming fails, the temporary file is deleted and the old file is left untouched; if flushing the folder fails, the app logs a warning and the file is still saved.</desc>
+    <style>
+        .ss-bg { fill: #ffffff; }
+        .ss-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
+        .ss-lead { font-size: 14px; fill: #59636e; }
+        .ss-label { font-size: 13px; font-weight: 600; fill: #59636e; }
+        .ss-node, .ss-old { fill: #f6f8fa; stroke: #d1d9e0; }
+        .ss-new { fill: #ddf4ff; stroke: #b6e3ff; }
+        .ss-temp { fill: none; stroke: #8c959f; stroke-dasharray: 4 3; }
+        .ss-name { font-size: 15px; font-weight: 600; fill: #1f2328; }
+        .ss-text { font-size: 13px; fill: #1f2328; }
+        .ss-note { font-size: 12px; fill: #59636e; }
+        .ss-code { font-family: Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', monospace; }
+        .ss-file { font-size: 12.5px; fill: #1f2328; }
+        .ss-file-temp { font-size: 12.5px; fill: #59636e; }
+        .ss-file-new { font-size: 12.5px; fill: #0550ae; }
+        .ss-tag-new { font-size: 12px; fill: #0550ae; }
+        .ss-badge { fill: #0969da; }
+        .ss-digit { font-size: 12px; font-weight: 600; fill: #ffffff; }
+        .ss-flow { fill: none; stroke: #0969da; stroke-width: 1.75; }
+        .ss-flow-head { fill: #0969da; }
+        @media (prefers-color-scheme: dark) {
+            .ss-bg { fill: #0d1117; }
+            .ss-title, .ss-name, .ss-text, .ss-file { fill: #e6edf3; }
+            .ss-lead, .ss-label, .ss-note, .ss-file-temp { fill: #9198a1; }
+            .ss-node, .ss-old { fill: #151b23; stroke: #3d444d; }
+            .ss-new { fill: #172c47; stroke: #23487a; }
+            .ss-temp { stroke: #656c76; }
+            .ss-file-new, .ss-tag-new { fill: #79c0ff; }
+            .ss-badge { fill: #1f6feb; }
+            .ss-flow { stroke: #4493f8; }
+            .ss-flow-head { fill: #4493f8; }
+        }
+    </style>
+    <defs>
+        <marker id="ss-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="ss-flow-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+    </defs>
+    <rect class="ss-bg" width="1120" height="500"/>
+    <text class="ss-title" x="32" y="48">Safe saving</text>
+    <text class="ss-lead" x="32" y="74"><tspan class="ss-code">write_atomic</tspan> never leaves a half-written file: the old file stays whole until a single rename replaces it.</text>
+    <!-- Step 1: write the temporary file -->
+    <rect class="ss-node" x="32" y="100" width="328" height="128" rx="10"/>
+    <circle class="ss-badge" cx="60" cy="126" r="11"/>
+    <text class="ss-digit" x="60" y="130.5" text-anchor="middle">1</text>
+    <text class="ss-name" x="80" y="131">Write a temporary file</text>
+    <text class="ss-text" x="48" y="158">a new file in the same folder</text>
+    <text class="ss-text" x="48" y="177">gets the contents, flushed to disk</text>
+    <text class="ss-note ss-code" x="48" y="212">write_new</text>
+    <!-- Step 2: rename it over the old file -->
+    <rect class="ss-node" x="396" y="100" width="328" height="128" rx="10"/>
+    <circle class="ss-badge" cx="424" cy="126" r="11"/>
+    <text class="ss-digit" x="424" y="130.5" text-anchor="middle">2</text>
+    <text class="ss-name" x="444" y="131">Rename</text>
+    <text class="ss-text" x="412" y="158">one rename replaces the old file</text>
+    <text class="ss-note" x="412" y="177">on Windows, retried for about a second</text>
+    <text class="ss-note" x="412" y="193">while another program holds the file</text>
+    <text class="ss-note ss-code" x="412" y="212">replace</text>
+    <!-- Step 3: flush the folder -->
+    <rect class="ss-node" x="760" y="100" width="328" height="128" rx="10"/>
+    <circle class="ss-badge" cx="788" cy="126" r="11"/>
+    <text class="ss-digit" x="788" y="130.5" text-anchor="middle">3</text>
+    <text class="ss-name" x="808" y="131">Flush the folder (Linux)</text>
+    <text class="ss-text" x="776" y="158">so that a power cut cannot bring</text>
+    <text class="ss-text" x="776" y="177">back the old file</text>
+    <text class="ss-note ss-code" x="776" y="212">platform::sync_dir</text>
+    <path class="ss-flow" d="M360 164 H395" marker-end="url(#ss-arrow)"/>
+    <path class="ss-flow" d="M724 164 H759" marker-end="url(#ss-arrow)"/>
+    <!-- What the folder holds if the app stops during each step -->
+    <text class="ss-label" x="32" y="264">If the app stops during the step, the folder holds:</text>
+    <rect class="ss-old" x="32" y="278" width="150" height="26" rx="6"/>
+    <text class="ss-file ss-code" x="44" y="295.5">settings.json</text>
+    <text class="ss-note" x="170" y="295.5" text-anchor="end">old</text>
+    <rect class="ss-temp" x="32" y="312" width="328" height="26" rx="6"/>
+    <text class="ss-file-temp ss-code" x="44" y="329.5">settings.json.4242-0.vestadesk.tmp</text>
+    <text class="ss-note" x="32" y="360">the next startup deletes the temporary file</text>
+    <rect class="ss-old" x="396" y="278" width="150" height="26" rx="6"/>
+    <text class="ss-file ss-code" x="408" y="295.5">settings.json</text>
+    <text class="ss-note" x="534" y="295.5" text-anchor="end">old</text>
+    <text class="ss-text" x="560" y="295.5" text-anchor="middle">or</text>
+    <rect class="ss-new" x="574" y="278" width="150" height="26" rx="6"/>
+    <text class="ss-file-new ss-code" x="586" y="295.5">settings.json</text>
+    <text class="ss-tag-new" x="712" y="295.5" text-anchor="end">new</text>
+    <text class="ss-note" x="396" y="326">the rename is all or nothing</text>
+    <rect class="ss-new" x="760" y="278" width="150" height="26" rx="6"/>
+    <text class="ss-file-new ss-code" x="772" y="295.5">settings.json</text>
+    <text class="ss-tag-new" x="898" y="295.5" text-anchor="end">new</text>
+    <text class="ss-note" x="760" y="326">the file is saved</text>
+    <!-- What happens if a step fails -->
+    <text class="ss-label" x="32" y="398">If the step fails:</text>
+    <rect class="ss-node" x="32" y="412" width="692" height="56" rx="10"/>
+    <text class="ss-text" x="48" y="436">the temporary file is deleted, and the old file is left untouched</text>
+    <text class="ss-note ss-code" x="48" y="456">AppError::StorageIo</text>
+    <rect class="ss-node" x="760" y="412" width="328" height="56" rx="10"/>
+    <text class="ss-text" x="776" y="436">a warning: the file is still saved</text>
+    <text class="ss-note ss-code" x="776" y="456">AppError::DirNotSynced</text>
+</svg>

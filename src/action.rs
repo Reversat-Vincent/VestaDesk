@@ -6,6 +6,8 @@
 //! nothing. At the start of the next screen update, the app takes every action from the queue and
 //! applies it with [`AppState::apply`].
 //!
+#![doc = include_str!("../docs/assets/actions.svg")]
+//!
 //! Background tasks get their sender from [`App::sender`], and screens get only the queue, so they
 //! can only push. Sending locks the egui context to ask for a screen update: in a closure that
 //! already holds that lock, such as the one given to `ui.input`, it would freeze the app.

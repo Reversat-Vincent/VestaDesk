@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="604" viewBox="0 0 1120 604" style="max-width: 100%; height: auto" role="img" aria-labelledby="ad-title ad-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <title id="ad-title">Actions in VestaDesk</title>
+    <desc id="ad-desc">The screens push actions to the ActionQueue while they draw the window, and background tasks send theirs from any thread through an ActionSender, which wakes the window. At the start of the next frame, App::logic takes every action from the queue and applies each one with AppState::apply, the only function that changes AppState. The screens then read AppState to draw the window.</desc>
+    <style>
+        .ad-bg { fill: #ffffff; }
+        .ad-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
+        .ad-lead { font-size: 14px; fill: #59636e; }
+        .ad-foot { font-size: 13px; fill: #59636e; }
+        .ad-zone { fill: none; stroke: #8c959f; stroke-dasharray: 6 4; }
+        .ad-node { fill: #f6f8fa; stroke: #d1d9e0; }
+        .ad-lane { fill: #ddf4ff; stroke: #b6e3ff; }
+        .ad-type { fill: #f1f8ff; stroke: #b6e3ff; }
+        .ad-name { font-size: 15px; font-weight: 600; fill: #1f2328; }
+        .ad-text { font-size: 13px; fill: #1f2328; }
+        .ad-note { font-size: 12px; fill: #59636e; }
+        .ad-code { font-family: Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', monospace; }
+        .ad-call { font-size: 12.5px; fill: #0550ae; }
+        .ad-flow { fill: none; stroke: #0969da; stroke-width: 1.75; }
+        .ad-read { fill: none; stroke: #818b98; stroke-width: 1.75; }
+        .ad-flow-head { fill: #0969da; }
+        .ad-read-head { fill: #818b98; }
+        @media (prefers-color-scheme: dark) {
+            .ad-bg { fill: #0d1117; }
+            .ad-title, .ad-name, .ad-text { fill: #e6edf3; }
+            .ad-lead, .ad-foot, .ad-note { fill: #9198a1; }
+            .ad-zone { stroke: #656c76; }
+            .ad-node { fill: #151b23; stroke: #3d444d; }
+            .ad-lane { fill: #172c47; stroke: #23487a; }
+            .ad-type { fill: #121d2f; stroke: #23487a; }
+            .ad-call { fill: #79c0ff; }
+            .ad-flow { stroke: #4493f8; }
+            .ad-read { stroke: #9198a1; }
+            .ad-flow-head { fill: #4493f8; }
+            .ad-read-head { fill: #9198a1; }
+        }
+    </style>
+    <defs>
+        <marker id="ad-arrow-flow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="ad-flow-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+        <marker id="ad-arrow-read" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="ad-read-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+    </defs>
+    <rect class="ad-bg" width="1120" height="604"/>
+    <text class="ad-title" x="32" y="48">Actions in VestaDesk</text>
+    <text class="ad-lead" x="32" y="74">Screens and background tasks never change the data themselves: they queue actions, which the next frame applies in order.</text>
+    <!-- The App, on the main thread -->
+    <rect class="ad-zone" x="32" y="100" width="736" height="420" rx="14"/>
+    <text class="ad-note" x="52" y="124"><tspan class="ad-code" font-weight="600">App</tspan> · main thread</text>
+    <!-- Screens -->
+    <rect class="ad-node" x="64" y="140" width="256" height="148" rx="10"/>
+    <text class="ad-name" x="80" y="166">Screens</text>
+    <text class="ad-note ad-code" x="304" y="166" text-anchor="end">App::ui</text>
+    <text class="ad-text" x="80" y="192">draw the window from the data</text>
+    <text class="ad-text" x="80" y="211">push the user's actions</text>
+    <text class="ad-note" x="80" y="236">buttons, shortcuts, command palette</text>
+    <!-- ActionQueue -->
+    <rect class="ad-node" x="480" y="140" width="256" height="148" rx="10"/>
+    <text class="ad-name ad-code" x="496" y="166">ActionQueue</text>
+    <text class="ad-note" x="496" y="188">waiting for the next frame</text>
+    <rect class="ad-lane" x="496" y="204" width="224" height="32" rx="6"/>
+    <text class="ad-call ad-code" x="508" y="224.5">pushed</text>
+    <text class="ad-note" x="708" y="224.5" text-anchor="end">screens</text>
+    <rect class="ad-lane" x="496" y="244" width="224" height="32" rx="6"/>
+    <text class="ad-call ad-code" x="508" y="264.5">received</text>
+    <text class="ad-note" x="708" y="264.5" text-anchor="end">background tasks</text>
+    <!-- App::logic -->
+    <rect class="ad-node" x="480" y="368" width="256" height="120" rx="10"/>
+    <text class="ad-name ad-code" x="496" y="394">App::logic</text>
+    <text class="ad-text" x="496" y="420">at the start of every frame,</text>
+    <text class="ad-text" x="496" y="439">even when minimized</text>
+    <!-- AppState -->
+    <rect class="ad-node" x="64" y="368" width="256" height="120" rx="10"/>
+    <text class="ad-name ad-code" x="80" y="394">AppState</text>
+    <text class="ad-text" x="80" y="420">all of the app's data</text>
+    <text class="ad-text ad-code" x="80" y="444">route: Route</text>
+    <text class="ad-note" x="304" y="444" text-anchor="end">the page shown</text>
+    <text class="ad-text" x="80" y="470" font-weight="600">only <tspan class="ad-code">apply</tspan> changes it</text>
+    <!-- Background tasks -->
+    <rect class="ad-node" x="888" y="140" width="200" height="148" rx="10"/>
+    <text class="ad-name" x="904" y="166">Background tasks</text>
+    <text class="ad-note" x="904" y="188">any thread</text>
+    <text class="ad-text" x="904" y="214">use an <tspan class="ad-code">ActionSender</tspan></text>
+    <text class="ad-note" x="904" y="233">from <tspan class="ad-code">App::sender()</tspan></text>
+    <!-- AppAction -->
+    <rect class="ad-type" x="888" y="368" width="200" height="120" rx="10"/>
+    <text class="ad-name ad-code" x="904" y="394">AppAction</text>
+    <text class="ad-note" x="904" y="414">a change to the app's data</text>
+    <text class="ad-call ad-code" x="904" y="442">Navigate(Route)</text>
+    <text class="ad-text" x="904" y="461">shows the route's page</text>
+    <!-- Screens push to the queue -->
+    <path class="ad-flow" d="M320 220 H495" marker-end="url(#ad-arrow-flow)"/>
+    <text class="ad-call ad-code" x="400" y="211" text-anchor="middle">push(action)</text>
+    <!-- Background tasks send to the queue -->
+    <path class="ad-flow" d="M888 260 H721" marker-end="url(#ad-arrow-flow)"/>
+    <text class="ad-call ad-code" x="828" y="251" text-anchor="middle">send(action)</text>
+    <text class="ad-note" x="828" y="277" text-anchor="middle">wakes the window</text>
+    <!-- App::logic takes the queue -->
+    <path class="ad-flow" d="M608 288 V367" marker-end="url(#ad-arrow-flow)"/>
+    <text x="596" y="322" text-anchor="end"><tspan class="ad-call ad-code">take()</tspan><tspan class="ad-note"> at the next frame</tspan></text>
+    <text class="ad-note" x="596" y="340" text-anchor="end">pushed first, then received</text>
+    <!-- App::logic applies each action -->
+    <path class="ad-flow" d="M480 428 H321" marker-end="url(#ad-arrow-flow)"/>
+    <text class="ad-call ad-code" x="400" y="419" text-anchor="middle">apply(action)</text>
+    <text class="ad-note" x="400" y="446" text-anchor="middle">for each action</text>
+    <!-- Screens read the state -->
+    <path class="ad-read" d="M192 368 V289" marker-end="url(#ad-arrow-read)"/>
+    <text class="ad-note" x="204" y="322">reads</text>
+    <text class="ad-note ad-code" x="204" y="340">&amp;AppState</text>
+    <text class="ad-foot" x="32" y="556">A frame is one screen update: eframe calls <tspan class="ad-code">App::logic</tspan>, then <tspan class="ad-code">App::ui</tspan>.</text>
+    <text class="ad-foot" x="32" y="578">Example: clicking the Settings item in the activity bar pushes <tspan class="ad-code">Navigate(Settings)</tspan>; on the next frame, <tspan class="ad-code">App::logic</tspan> applies it and the screens draw the Settings page.</text>
+</svg>

@@ -5,6 +5,8 @@
 //! change. The page fills the rest and scrolls when it does not fit, so all three areas stay usable
 //! down to the [minimum window size](crate::app::MIN_WINDOW_SIZE).
 //!
+#![doc = include_str!("../docs/assets/window-layout.svg")]
+//!
 //! The activity bar has one item per page, in the order of [`Route::ALL`]; until pages have icons,
 //! each item shows the first letter of its page's title. Clicking an item opens its page, and the
 //! item of the open page is highlighted. Each page keeps its own scroll position.

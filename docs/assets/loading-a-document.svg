@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="656" viewBox="0 0 1120 656" style="max-width: 100%; height: auto" role="img" aria-labelledby="ld-title ld-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <title id="ld-title">Loading a document</title>
+    <desc id="ld-desc">load reads a document in five steps, here settings.json into Settings. 1: it reads the file; no file returns the default document, a file over 1 MiB returns DocumentTooLarge, and a file that cannot be read returns StorageIo. 2: it parses the JSON into a map of fields; anything but a JSON object returns DocumentCorrupt. 3: it takes out the version field; an older version is upgraded by migrate, a newer one is kept as it is with an info message, and a file without a version is read as the current format. 4: it fills the document from the remaining fields; a missing field takes its default value, an unknown field is ignored, and a value of the wrong type returns DocumentCorrupt. 5: correct brings out-of-range values back in range.</desc>
+    <style>
+        .ld-bg { fill: #ffffff; }
+        .ld-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
+        .ld-lead { font-size: 14px; fill: #59636e; }
+        .ld-foot { font-size: 13px; fill: #59636e; }
+        .ld-node { fill: #f6f8fa; stroke: #d1d9e0; }
+        .ld-name { font-size: 15px; font-weight: 600; fill: #1f2328; }
+        .ld-text { font-size: 13px; fill: #1f2328; }
+        .ld-note { font-size: 12px; fill: #59636e; }
+        .ld-code { font-family: Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', monospace; }
+        .ld-file { font-size: 12.5px; fill: #1f2328; }
+        .ld-call { font-size: 12.5px; fill: #0550ae; }
+        .ld-ok { fill: #ddf4ff; stroke: #b6e3ff; }
+        .ld-ok-text { font-size: 12.5px; fill: #0550ae; }
+        .ld-err { fill: #ffebe9; stroke: #ffcecb; }
+        .ld-err-text { font-size: 12.5px; fill: #d1242f; }
+        .ld-badge { fill: #0969da; }
+        .ld-digit { font-size: 12px; font-weight: 600; fill: #ffffff; }
+        .ld-flow { fill: none; stroke: #0969da; stroke-width: 1.75; }
+        .ld-flow-head { fill: #0969da; }
+        .ld-case { fill: none; stroke: #8c959f; stroke-width: 1.25; }
+        .ld-case-head { fill: #8c959f; }
+        @media (prefers-color-scheme: dark) {
+            .ld-bg { fill: #0d1117; }
+            .ld-title, .ld-name, .ld-text, .ld-file { fill: #e6edf3; }
+            .ld-lead, .ld-foot, .ld-note { fill: #9198a1; }
+            .ld-node { fill: #151b23; stroke: #3d444d; }
+            .ld-call, .ld-ok-text { fill: #79c0ff; }
+            .ld-ok { fill: #172c47; stroke: #23487a; }
+            .ld-err { fill: #301b1f; stroke: #6b2b2b; }
+            .ld-err-text { fill: #ff7b72; }
+            .ld-badge { fill: #1f6feb; }
+            .ld-flow { stroke: #4493f8; }
+            .ld-flow-head { fill: #4493f8; }
+            .ld-case { stroke: #656c76; }
+            .ld-case-head { fill: #656c76; }
+        }
+    </style>
+    <defs>
+        <marker id="ld-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="ld-flow-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+        <marker id="ld-case-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="ld-case-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+    </defs>
+    <rect class="ld-bg" width="1120" height="656"/>
+    <text class="ld-title" x="32" y="48">Loading a document</text>
+    <text class="ld-lead" x="32" y="74"><tspan class="ld-code">load</tspan> reads a document in five steps, here <tspan class="ld-code">settings.json</tspan> into <tspan class="ld-code">Settings</tspan>. Each step passes it on, changes it, or ends the load.</text>
+    <!-- The steps, from the file to the document -->
+    <rect class="ld-node" x="112" y="96" width="120" height="24" rx="6"/>
+    <text class="ld-file ld-code" x="172" y="112.5" text-anchor="middle">settings.json</text>
+    <path class="ld-flow" d="M172 120 V139" marker-end="url(#ld-arrow)"/>
+    <rect class="ld-node" x="32" y="140" width="280" height="60" rx="10"/>
+    <circle class="ld-badge" cx="56" cy="162" r="11"/>
+    <text class="ld-digit" x="56" y="166.5" text-anchor="middle">1</text>
+    <text class="ld-name" x="76" y="167">Read the file</text>
+    <text class="ld-note" x="48" y="188"><tspan class="ld-code">FILE_NAME</tspan> in the settings folder</text>
+    <path class="ld-flow" d="M172 200 V227" marker-end="url(#ld-arrow)"/>
+    <rect class="ld-node" x="32" y="228" width="280" height="60" rx="10"/>
+    <circle class="ld-badge" cx="56" cy="250" r="11"/>
+    <text class="ld-digit" x="56" y="254.5" text-anchor="middle">2</text>
+    <text class="ld-name" x="76" y="255">Parse the JSON</text>
+    <text class="ld-note" x="48" y="276">into a map of fields</text>
+    <path class="ld-flow" d="M172 288 V315" marker-end="url(#ld-arrow)"/>
+    <rect class="ld-node" x="32" y="316" width="280" height="60" rx="10"/>
+    <circle class="ld-badge" cx="56" cy="338" r="11"/>
+    <text class="ld-digit" x="56" y="342.5" text-anchor="middle">3</text>
+    <text class="ld-name" x="76" y="343">Check the version</text>
+    <text class="ld-note" x="48" y="364">takes out the version field</text>
+    <path class="ld-flow" d="M172 376 V403" marker-end="url(#ld-arrow)"/>
+    <rect class="ld-node" x="32" y="404" width="280" height="60" rx="10"/>
+    <circle class="ld-badge" cx="56" cy="426" r="11"/>
+    <text class="ld-digit" x="56" y="430.5" text-anchor="middle">4</text>
+    <text class="ld-name" x="76" y="431">Fill the document</text>
+    <text class="ld-note" x="48" y="452">from the remaining fields</text>
+    <path class="ld-flow" d="M172 464 V491" marker-end="url(#ld-arrow)"/>
+    <rect class="ld-node" x="32" y="492" width="280" height="60" rx="10"/>
+    <circle class="ld-badge" cx="56" cy="514" r="11"/>
+    <text class="ld-digit" x="56" y="518.5" text-anchor="middle">5</text>
+    <text class="ld-name" x="76" y="519">Correct the values</text>
+    <text class="ld-note ld-code" x="48" y="540">Document::correct</text>
+    <path class="ld-flow" d="M172 552 V571" marker-end="url(#ld-arrow)"/>
+    <rect class="ld-ok" x="112" y="572" width="120" height="24" rx="6"/>
+    <text class="ld-ok-text ld-code" x="172" y="588.5" text-anchor="middle">Settings</text>
+    <!-- Step 1 cases -->
+    <path class="ld-case" d="M312 170 H340 M340 148 V192"/>
+    <path class="ld-case" d="M340 148 H371" marker-end="url(#ld-case-arrow)"/>
+    <path class="ld-case" d="M340 170 H371" marker-end="url(#ld-case-arrow)"/>
+    <path class="ld-case" d="M340 192 H371" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="380" y="152.5">no file</text>
+    <path class="ld-case" d="M524 148 H547" marker-end="url(#ld-case-arrow)"/>
+    <rect class="ld-ok" x="560" y="137" width="160" height="22" rx="6"/>
+    <text class="ld-ok-text" x="640" y="152.5" text-anchor="middle">the default document</text>
+    <text class="ld-text" x="380" y="174.5">over 1 MiB</text>
+    <path class="ld-case" d="M524 170 H547" marker-end="url(#ld-case-arrow)"/>
+    <rect class="ld-err" x="560" y="159" width="140" height="22" rx="6"/>
+    <text class="ld-err-text ld-code" x="630" y="174.5" text-anchor="middle">DocumentTooLarge</text>
+    <text class="ld-text" x="380" y="196.5">cannot be read</text>
+    <path class="ld-case" d="M524 192 H547" marker-end="url(#ld-case-arrow)"/>
+    <rect class="ld-err" x="560" y="181" width="92" height="22" rx="6"/>
+    <text class="ld-err-text ld-code" x="606" y="196.5" text-anchor="middle">StorageIo</text>
+    <!-- Step 2 case -->
+    <path class="ld-case" d="M312 258 H371" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="380" y="262.5">not a JSON object</text>
+    <path class="ld-case" d="M524 258 H547" marker-end="url(#ld-case-arrow)"/>
+    <rect class="ld-err" x="560" y="247" width="134" height="22" rx="6"/>
+    <text class="ld-err-text ld-code" x="627" y="262.5" text-anchor="middle">DocumentCorrupt</text>
+    <!-- Step 3 cases -->
+    <path class="ld-case" d="M312 346 H340 M340 324 V368"/>
+    <path class="ld-case" d="M340 324 H371" marker-end="url(#ld-case-arrow)"/>
+    <path class="ld-case" d="M340 346 H371" marker-end="url(#ld-case-arrow)"/>
+    <path class="ld-case" d="M340 368 H371" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="380" y="328.5">older</text>
+    <path class="ld-case" d="M524 324 H547" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="560" y="328.5"><tspan class="ld-call ld-code">migrate(version, fields)</tspan> upgrades the fields</text>
+    <text class="ld-text" x="380" y="350.5">newer</text>
+    <path class="ld-case" d="M524 346 H547" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="560" y="350.5">kept as it is, with an info message</text>
+    <text class="ld-text" x="380" y="372.5">no version</text>
+    <path class="ld-case" d="M524 368 H547" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="560" y="372.5">read as the current format</text>
+    <!-- Step 4 cases -->
+    <path class="ld-case" d="M312 434 H340 M340 412 V456"/>
+    <path class="ld-case" d="M340 412 H371" marker-end="url(#ld-case-arrow)"/>
+    <path class="ld-case" d="M340 434 H371" marker-end="url(#ld-case-arrow)"/>
+    <path class="ld-case" d="M340 456 H371" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="380" y="416.5">missing field</text>
+    <path class="ld-case" d="M524 412 H547" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="560" y="416.5">takes its default value</text>
+    <text class="ld-text" x="380" y="438.5">unknown field</text>
+    <path class="ld-case" d="M524 434 H547" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="560" y="438.5">ignored</text>
+    <text class="ld-text" x="380" y="460.5">wrong value type</text>
+    <path class="ld-case" d="M524 456 H547" marker-end="url(#ld-case-arrow)"/>
+    <rect class="ld-err" x="560" y="445" width="134" height="22" rx="6"/>
+    <text class="ld-err-text ld-code" x="627" y="460.5" text-anchor="middle">DocumentCorrupt</text>
+    <!-- Step 5 case -->
+    <path class="ld-case" d="M312 522 H371" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="380" y="526.5">out-of-range value</text>
+    <path class="ld-case" d="M524 522 H547" marker-end="url(#ld-case-arrow)"/>
+    <text class="ld-text" x="560" y="526.5">brought back in range: the zoom stays within 50–300 %</text>
+    <text class="ld-foot" x="32" y="632">Blue boxes end the load with a document, red boxes with an error.</text>
+</svg>

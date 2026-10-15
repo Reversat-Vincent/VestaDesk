@@ -8,6 +8,8 @@
 //! old file with it. If the save fails, the old file is left untouched. At startup,
 //! [`remove_temp_files`] deletes the temporary files of interrupted saves.
 //!
+#![doc = include_str!("../docs/assets/safe-saving.svg")]
+//!
 //! - On Linux, the folder is also flushed to disk after the rename, so a finished save survives a
 //!   power cut. If that flush fails, the app logs a warning.
 //! - On Windows, a power cut right after a save can bring back the old file. While another
@@ -22,6 +24,8 @@
 //! - Unknown fields are ignored, so a file from a newer version still loads.
 //! - [`Document::migrate`] upgrades a file in an older format, then [`Document::correct`] fixes out-of-range values.
 //! - A file over [`MAX_DOCUMENT_SIZE`], or whose content is not a valid document, is rejected.
+//!
+#![doc = include_str!("../docs/assets/loading-a-document.svg")]
 
 use std::env;
 use std::fs::{self, File};

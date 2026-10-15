@@ -71,3 +71,4 @@ The developer documentation is generated from the code by `cargo doc`. It is mai
 - A public function that returns a `Result` has an `# Errors` section that links each error it returns and says when.
 - A public function that returns a value computed only from its arguments has an `# Examples` section. Examples use `?` rather than `unwrap` and run as tests with `cargo test --doc`.
 - Link to other items with intra-doc links, not URLs.
+- Diagrams are SVG files in `docs/assets/`, shown in the doc comments with `#![doc = include_str!(...)]`. They have no blank lines, their `<svg>` element has `style="max-width: 100%; height: auto"`, and their ids and class names start with a prefix of their own.
