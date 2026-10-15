@@ -2,6 +2,7 @@
 #![cfg(test)]
 
 use egui::{Context, Pos2, RawInput, Rect};
+use vesta_desk::action;
 use vesta_desk::app::WINDOW_SIZE;
 use vesta_desk::layout::{self, Areas};
 use vesta_desk::state::AppState;
@@ -12,12 +13,13 @@ fn areas(window: Rect) -> Areas {
         screen_rect: Some(window),
         ..RawInput::default()
     };
+    let ctx = Context::default();
+    let (_, mut actions) = action::channel(ctx.clone());
     let mut areas = None;
-    Context::default()
-        .run_ui(input, |ui| {
-            areas = Some(layout::show(ui, &AppState::default(), &mut Vec::new()));
-        })
-        .drop_without_applying_deltas();
+    ctx.run_ui(input, |ui| {
+        areas = Some(layout::show(ui, &AppState::default(), &mut actions));
+    })
+    .drop_without_applying_deltas();
     areas.unwrap()
 }
 

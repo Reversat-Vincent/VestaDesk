@@ -11,7 +11,7 @@
 
 use egui::{Button, CentralPanel, Panel, Rect, ScrollArea, Ui};
 
-use crate::action::AppAction;
+use crate::action::{ActionQueue, AppAction};
 use crate::pages;
 use crate::router::Route;
 use crate::state::AppState;
@@ -33,8 +33,8 @@ pub struct Areas {
     pub status_bar: Rect,
 }
 
-/// Draws the three areas over all of `ui` from `state`, collects the user's actions in `actions`, and returns where it placed the areas.
-pub fn show(ui: &mut Ui, state: &AppState, actions: &mut Vec<AppAction>) -> Areas {
+/// Draws the three areas over all of `ui` from `state`, pushes the user's actions to `actions`, and returns where it placed the areas.
+pub fn show(ui: &mut Ui, state: &AppState, actions: &mut ActionQueue) -> Areas {
     let route = state.route();
     // A panel takes its side of the space the earlier panels left: the status bar goes first to span the whole width.
     let status_bar = Panel::bottom("status_bar")
@@ -66,7 +66,7 @@ pub fn show(ui: &mut Ui, state: &AppState, actions: &mut Vec<AppAction>) -> Area
 }
 
 /// Draws the item of each page, highlights the one of `current`, and pushes [`AppAction::Navigate`] when the user clicks one.
-fn menu(ui: &mut Ui, current: Route, actions: &mut Vec<AppAction>) {
+fn menu(ui: &mut Ui, current: Route, actions: &mut ActionQueue) {
     ui.vertical_centered_justified(|ui| {
         for &route in Route::ALL {
             let item = Button::selectable(route == current, initial(route.title()));

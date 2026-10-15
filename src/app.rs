@@ -5,11 +5,11 @@
 //! [`App`] keeps all of the app's data in one [`AppState`], which only [`AppState::apply`] changes.
 //! On each frame, eframe calls two methods of [`App`]:
 //!
-//! 1. [`logic`](eframe::App::logic) applies the [`AppAction`]s collected since the last frame, in order.
-//! 2. [`ui`](eframe::App::ui) lets the screens read the data, draw the window and collect the user's actions.
-//! 3. If there are any, `ui` asks for another frame, whose `logic` applies them.
+//! 1. [`logic`](eframe::App::logic) applies the [actions](crate::action) waiting in the [`ActionQueue`], in order.
+//! 2. [`ui`](eframe::App::ui) lets the screens read the data, draw the window and push the user's actions to the queue.
+//! 3. If they pushed any, `ui` asks for another frame, whose `logic` applies them.
 //!
-//! While the window is minimized, eframe calls only `logic`, so the actions still take effect.
+//! eframe calls `logic` even while the window is minimized, so the actions of background tasks still take effect.
 //!
 //! # Rendering
 //!
@@ -18,9 +18,9 @@
 //! frame in 120 ms, against 13.8 MB and 630 ms for wgpu.
 //! VestaDesk therefore needs OpenGL 2.0 or later.
 
-use egui::Vec2;
+use egui::{Context, Vec2};
 
-use crate::action::AppAction;
+use crate::action::{self, ActionQueue, ActionSender};
 use crate::error::{AppError, Result};
 use crate::layout;
 use crate::state::AppState;
@@ -35,41 +35,74 @@ pub const WINDOW_SIZE: Vec2 = egui::vec2(800.0, 600.0);
 pub const MIN_WINDOW_SIZE: Vec2 = egui::vec2(640.0, 480.0);
 
 /// The VestaDesk app, which eframe runs in the main window.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct App {
     /// All of the app's data.
     state: AppState,
-    /// The actions the screens collected, applied on the next frame.
-    actions: Vec<AppAction>,
+    /// The actions waiting to be applied on the next frame.
+    actions: ActionQueue,
+    /// The sender that [`App::sender`] gives to background tasks.
+    sender: ActionSender,
 }
 
 impl App {
+    /// Returns the app with the default data; the actions sent to it ask `ctx`, the context of its window, for a screen update.
+    #[must_use]
+    pub fn new(ctx: Context) -> Self {
+        let (sender, actions) = action::channel(ctx);
+        Self {
+            state: AppState::default(),
+            actions,
+            sender,
+        }
+    }
+
     /// Returns all of the app's data.
     ///
     /// # Examples
     ///
     /// ```
+    /// use egui::Context;
     /// use vesta_desk::app::App;
     /// use vesta_desk::state::AppState;
     ///
-    /// assert_eq!(App::default().state(), &AppState::default());
+    /// assert_eq!(App::new(Context::default()).state(), &AppState::default());
     /// ```
     #[must_use]
     pub fn state(&self) -> &AppState {
         &self.state
     }
+
+    /// Returns a sender that background tasks use to send actions to the app from any thread.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use egui::Context;
+    /// use vesta_desk::action::AppAction;
+    /// use vesta_desk::app::App;
+    /// use vesta_desk::router::Route;
+    ///
+    /// let app = App::new(Context::default());
+    /// app.sender().send(AppAction::Navigate(Route::About))?;
+    /// # Ok::<(), vesta_desk::error::AppError>(())
+    /// ```
+    #[must_use]
+    pub fn sender(&self) -> ActionSender {
+        self.sender.clone()
+    }
 }
 
 impl eframe::App for App {
     fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        for action in self.actions.drain(..) {
+        for action in self.actions.take() {
             self.state.apply(action);
         }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         layout::show(ui, &self.state, &mut self.actions);
-        if !self.actions.is_empty() {
+        if !self.actions.pushed().is_empty() {
             // egui redraws by itself after input, but actions from a frame without input (such as a timer) need this to show.
             ui.ctx().request_repaint();
         }
@@ -108,7 +141,7 @@ pub fn run() -> Result<()> {
     eframe::run_native(
         NAME,
         native_options(),
-        Box::new(|_| Ok(Box::<App>::default())),
+        Box::new(|creation| Ok(Box::new(App::new(creation.egui_ctx.clone())))),
     )
     .map_err(|error| AppError::Startup(error.to_string()))
 }

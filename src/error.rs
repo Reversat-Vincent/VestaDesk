@@ -31,6 +31,10 @@ pub enum AppError {
     #[error("the application could not start: {0}")]
     Startup(String),
 
+    /// The app has closed, so it no longer applies the actions of background tasks: a task that gets this error stops, without reporting it.
+    #[error("the application has closed, so it cannot apply the action")]
+    AppClosed,
+
     /// A logger was already installed when the app tried to install its own: the app keeps the existing one.
     #[error("a logger is already installed; keeping it")]
     LoggerAlreadyInstalled,
@@ -104,6 +108,7 @@ impl AppError {
         match self {
             Self::Startup(_) => Severity::Fatal,
             Self::ConfigDirUnavailable
+            | Self::AppClosed
             | Self::LoggerAlreadyInstalled
             | Self::StorageIo { .. }
             | Self::DirNotSynced { .. }
