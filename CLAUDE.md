@@ -8,6 +8,7 @@ When a change makes it wrong or incomplete, update it in the same change, withou
 
 - Write clear, concise, secure, and optimized code, without redundancies.
 - Write tests in the `tests/` folder (one file per module, e.g. `tests/error.rs`), not in inline `#[cfg(test)]` modules.
+- When a change makes a diagram in `docs/assets/` wrong or incomplete, update it in the same change; when it adds a mechanism that no diagram shows, add one.
 - Log errors and warnings by reporting an `AppError` (add a variant if none fits): only `AppError::report` calls `log::error!` and `log::warn!`.
 - No `Co-authored-by` on GitHub.
 

@@ -1,4 +1,4 @@
-//! The Home page, which the app opens on.
+//! The Home page, which the app opens on when no other page is saved.
 
 use egui::Ui;
 

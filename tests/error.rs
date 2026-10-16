@@ -63,6 +63,16 @@ fn each_failure_has_the_expected_description_and_severity() {
             "the file settings.json is too large: 2000000 bytes, over the limit of 1048576 bytes",
         ),
         (
+            AppError::AutoSaveUnavailable(std::io::Error::other("no thread left")),
+            Severity::Recoverable,
+            "cannot start saving changes automatically: no thread left",
+        ),
+        (
+            AppError::AutoSaveStopped,
+            Severity::Recoverable,
+            "changes are no longer saved automatically: the thread that saved them crashed",
+        ),
+        (
             AppError::FontUnavailable("Consolas".into()),
             Severity::Recoverable,
             "the font \"Consolas\" is unavailable",

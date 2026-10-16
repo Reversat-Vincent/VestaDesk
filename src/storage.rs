@@ -1,4 +1,4 @@
-//! Persistence: the settings directory ([`settings_dir`]), atomic writes ([`write_atomic`]) and versioned JSON documents ([`Document`]).
+//! Persistence: the settings directory ([`settings_dir`]), atomic writes ([`write_atomic`]), versioned JSON documents ([`Document`]) and saving in the background ([`AutoSave`]).
 //!
 //! # Safe saving
 //!
@@ -26,6 +26,17 @@
 //! - A file over [`MAX_DOCUMENT_SIZE`], or whose content is not a valid document, is rejected.
 //!
 #![doc = include_str!("../docs/assets/loading-a-document.svg")]
+//!
+//! # Saving automatically
+//!
+//! An [`AutoSave`] saves a value, such as the [`Settings`](crate::settings::Settings),
+//! each time it changes. It saves on a thread of its own, so that a slow disk or a file
+//! held by another program never slows down the app. It waits until the value has stayed
+//! unchanged for [`SAVE_DELAY`], so that many quick changes in a row give a single save,
+//! but saves the last change at once when the app closes. A failed save is reported,
+//! and the next change tries again.
+//!
+#![doc = include_str!("../docs/assets/saving-automatically.svg")]
 
 use std::env;
 use std::fs::{self, File};
@@ -33,7 +44,8 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::thread;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use serde::Serialize;
@@ -45,6 +57,9 @@ use crate::platform;
 
 /// The size of the largest file that [`load`] reads, in bytes: 1 MiB.
 pub const MAX_DOCUMENT_SIZE: u64 = 1024 * 1024;
+
+/// How long a value must stay unchanged before [`AutoSave`] saves it: half a second.
+pub const SAVE_DELAY: Duration = Duration::from_millis(500);
 
 /// Name of VestaDesk's folder inside the user's configuration directory.
 const APP_DIR: &str = "VestaDesk";
@@ -234,7 +249,85 @@ pub fn save<T: Document>(dir: &Path, document: &T) -> Result<()> {
         .map_err(io::Error::from)
         .map_err(io_error(&path))?;
     json.push(b'\n');
-    write_atomic(&path, &json)
+    write_atomic(&path, &json)?;
+    log::debug!("saved {}", path.display());
+    Ok(())
+}
+
+/// Saves a value each time it changes, on a thread of its own, as described in [Saving automatically](crate::storage#saving-automatically).
+///
+/// Dropping it, as the app does when it closes, saves the last change at once and waits until it is saved.
+#[derive(Debug)]
+pub struct AutoSave<T> {
+    /// The last value given to [`AutoSave::update`], or the saved value it started from.
+    latest: T,
+    /// The channel to the thread that saves, and that thread; `None` once the thread has stopped.
+    thread: Option<(Sender<T>, JoinHandle<()>)>,
+}
+
+impl<T: Clone + PartialEq + Send + 'static> AutoSave<T> {
+    /// Starts the thread that calls `save` with each change that [`update`](AutoSave::update) gives; `saved` is the value already saved, which needs no save.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::AutoSaveUnavailable`] if the thread cannot start.
+    pub fn start(saved: T, save: impl FnMut(&T) -> Result<()> + Send + 'static) -> Result<Self> {
+        let (sender, changes) = mpsc::channel();
+        let thread = thread::Builder::new()
+            .name("autosave".to_owned())
+            .spawn(move || save_changes(&changes, save))
+            .map_err(AppError::AutoSaveUnavailable)?;
+        Ok(Self {
+            latest: saved,
+            thread: Some((sender, thread)),
+        })
+    }
+
+    /// Saves `value` if it differs from the previous one, once no other change has followed it for [`SAVE_DELAY`].
+    pub fn update(&mut self, value: &T) {
+        if *value == self.latest {
+            return;
+        }
+        self.latest = value.clone();
+        if let Some((changes, _)) = &self.thread
+            && changes.send(value.clone()).is_err()
+        {
+            // The thread stops before its channel closes only if it panicked.
+            self.stop();
+        }
+    }
+}
+
+impl<T> AutoSave<T> {
+    /// Closes the channel, so that the thread saves the last change at once, then waits for the thread to end.
+    ///
+    /// A thread that panicked is reported as [`AppError::AutoSaveStopped`].
+    fn stop(&mut self) {
+        if let Some((changes, thread)) = self.thread.take() {
+            drop(changes);
+            if thread.join().is_err() {
+                AppError::AutoSaveStopped.report();
+            }
+        }
+    }
+}
+
+impl<T> Drop for AutoSave<T> {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+/// Saves with `save` each value from `changes` once no newer one has come for [`SAVE_DELAY`], or at once if the channel closes, until it is closed and empty.
+fn save_changes<T>(changes: &Receiver<T>, mut save: impl FnMut(&T) -> Result<()>) {
+    while let Ok(mut value) = changes.recv() {
+        while let Ok(newer) = changes.recv_timeout(SAVE_DELAY) {
+            value = newer;
+        }
+        if let Err(error) = save(&value) {
+            error.report();
+        }
+    }
 }
 
 /// A document as [`save`] writes it: its format version, then its fields.

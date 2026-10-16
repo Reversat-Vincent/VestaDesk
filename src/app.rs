@@ -5,7 +5,7 @@
 //! [`App`] keeps all of the app's data in one [`AppState`], which only [`AppState::apply`] changes.
 //! On each frame, eframe calls two methods of [`App`]:
 //!
-//! 1. [`logic`](eframe::App::logic) applies the [actions](crate::action) waiting in the [`ActionQueue`], in order.
+//! 1. [`logic`](eframe::App::logic) applies the [actions](crate::action) waiting in the [`ActionQueue`], in order, then gives the settings to their [`AutoSave`], which saves them if they changed.
 //! 2. [`ui`](eframe::App::ui) lets the screens read the data, draw the window and push the user's actions to the queue.
 //! 3. If they pushed any, `ui` asks for another frame, whose `logic` applies them.
 //!
@@ -18,12 +18,16 @@
 //! frame in 120 ms, against 13.8 MB and 630 ms for wgpu.
 //! VestaDesk therefore needs OpenGL 2.0 or later.
 
+use std::path::PathBuf;
+
 use egui::{Context, Vec2};
 
 use crate::action::{self, ActionQueue, ActionSender};
 use crate::error::{AppError, Result};
 use crate::layout;
+use crate::settings::{self, Settings};
 use crate::state::AppState;
+use crate::storage::AutoSave;
 
 /// The app's name, shown as the window title.
 const NAME: &str = "VestaDesk";
@@ -43,17 +47,26 @@ pub struct App {
     actions: ActionQueue,
     /// The sender that [`App::sender`] gives to background tasks.
     sender: ActionSender,
+    /// Saves the settings each time they change; `None` keeps them in memory only.
+    autosave: Option<AutoSave<Settings>>,
 }
 
 impl App {
-    /// Returns the app with the default data; the actions sent to it ask `ctx`, the context of its window, for a screen update.
+    /// Returns the app with the settings saved in `settings_dir`, which it saves there each time they change; the actions sent to it ask `ctx`, the context of its window, for a screen update.
+    ///
+    /// [`settings::load_and_autosave`] describes how the settings are loaded and saved. Without a
+    /// settings directory, the app starts from the default settings and keeps them in memory only.
     #[must_use]
-    pub fn new(ctx: Context) -> Self {
+    pub fn new(ctx: Context, settings_dir: Option<PathBuf>) -> Self {
         let (sender, actions) = action::channel(ctx);
+        let (settings, autosave) = settings_dir
+            .map(settings::load_and_autosave)
+            .unwrap_or_default();
         Self {
-            state: AppState::default(),
+            state: AppState::new(settings),
             actions,
             sender,
+            autosave,
         }
     }
 
@@ -66,7 +79,8 @@ impl App {
     /// use vesta_desk::app::App;
     /// use vesta_desk::state::AppState;
     ///
-    /// assert_eq!(App::new(Context::default()).state(), &AppState::default());
+    /// // Without a settings directory, the app starts from the default settings.
+    /// assert_eq!(App::new(Context::default(), None).state(), &AppState::default());
     /// ```
     #[must_use]
     pub fn state(&self) -> &AppState {
@@ -83,7 +97,7 @@ impl App {
     /// use vesta_desk::app::App;
     /// use vesta_desk::router::Route;
     ///
-    /// let app = App::new(Context::default());
+    /// let app = App::new(Context::default(), None);
     /// app.sender().send(AppAction::Navigate(Route::About))?;
     /// # Ok::<(), vesta_desk::error::AppError>(())
     /// ```
@@ -97,6 +111,9 @@ impl eframe::App for App {
     fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         for action in self.actions.take() {
             self.state.apply(action);
+        }
+        if let Some(autosave) = &mut self.autosave {
+            autosave.update(self.state.settings());
         }
     }
 
@@ -132,16 +149,16 @@ pub fn native_options() -> eframe::NativeOptions {
     }
 }
 
-/// Opens the main window and runs the app until the window is closed.
+/// Opens the main window and runs the app until the window is closed, with the settings saved in `settings_dir`, as [`App::new`] describes.
 ///
 /// # Errors
 ///
 /// Returns [`AppError::Startup`] if the window cannot be created, for example without a display or without OpenGL 2.0.
-pub fn run() -> Result<()> {
+pub fn run(settings_dir: Option<PathBuf>) -> Result<()> {
     eframe::run_native(
         NAME,
         native_options(),
-        Box::new(|creation| Ok(Box::new(App::new(creation.egui_ctx.clone())))),
+        Box::new(|creation| Ok(Box::new(App::new(creation.egui_ctx.clone(), settings_dir)))),
     )
     .map_err(|error| AppError::Startup(error.to_string()))
 }

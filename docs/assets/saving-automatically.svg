@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="520" viewBox="0 0 1120 520" style="max-width: 100%; height: auto" role="img" aria-labelledby="sa-title sa-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <title id="sa-title">Saving automatically</title>
+    <desc id="sa-desc">AutoSave saves a value, here the Settings, on a thread of its own named autosave. On every frame, App::logic calls update with the settings, which sends a copy of them to that thread only if they changed. The thread waits until no newer change has come for SAVE_DELAY, 500 ms, and each newer change restarts the wait: when the user opens the Settings page, then the About page soon after, a single save writes page: about. When the window closes, the channel to the thread closes, so the thread saves the last change, page: home, at once, and the app waits for that save before it exits. If a save fails, it is reported, the thread keeps running, and the next change tries again. If the app crashes or is killed, the changes still waiting are lost, but write_atomic never leaves a half-written file. If settings.json cannot be loaded, the app starts from the default settings and never overwrites the file.</desc>
+    <style>
+        .sa-bg { fill: #ffffff; }
+        .sa-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
+        .sa-lead { font-size: 14px; fill: #59636e; }
+        .sa-label { font-size: 13px; font-weight: 600; fill: #59636e; }
+        .sa-node { fill: #f6f8fa; stroke: #d1d9e0; }
+        .sa-name { font-size: 15px; font-weight: 600; fill: #1f2328; }
+        .sa-text { font-size: 13px; fill: #1f2328; }
+        .sa-note { font-size: 12px; fill: #59636e; }
+        .sa-code { font-family: Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', monospace; }
+        .sa-call { font-size: 12.5px; fill: #0550ae; }
+        .sa-line { fill: none; stroke: #8c959f; stroke-width: 1.5; }
+        .sa-dash { stroke-dasharray: 4 3; }
+        .sa-wait { fill: #ddf4ff; stroke: #b6e3ff; }
+        .sa-wait-text { font-size: 12px; fill: #0550ae; }
+        .sa-mark { fill: #0969da; }
+        .sa-mark-text { font-size: 12px; font-weight: 600; fill: #ffffff; }
+        .sa-flow { fill: none; stroke: #0969da; stroke-width: 1.75; }
+        .sa-flow-head { fill: #0969da; }
+        .sa-case { fill: none; stroke: #8c959f; stroke-width: 1.25; }
+        .sa-case-head { fill: #8c959f; }
+        @media (prefers-color-scheme: dark) {
+            .sa-bg { fill: #0d1117; }
+            .sa-title, .sa-name, .sa-text { fill: #e6edf3; }
+            .sa-lead, .sa-label, .sa-note { fill: #9198a1; }
+            .sa-node { fill: #151b23; stroke: #3d444d; }
+            .sa-call, .sa-wait-text { fill: #79c0ff; }
+            .sa-line, .sa-case { stroke: #656c76; }
+            .sa-wait { fill: #172c47; stroke: #23487a; }
+            .sa-mark { fill: #1f6feb; }
+            .sa-flow { stroke: #4493f8; }
+            .sa-flow-head { fill: #4493f8; }
+            .sa-case-head { fill: #656c76; }
+        }
+    </style>
+    <defs>
+        <marker id="sa-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="sa-flow-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+        <marker id="sa-case-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="sa-case-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+    </defs>
+    <rect class="sa-bg" width="1120" height="520"/>
+    <text class="sa-title" x="32" y="48">Saving automatically</text>
+    <text class="sa-lead" x="32" y="74"><tspan class="sa-code">AutoSave</tspan> saves a value, here the <tspan class="sa-code">Settings</tspan>, on a thread of its own once it has stayed unchanged for <tspan class="sa-code">SAVE_DELAY</tspan>.</text>
+    <!-- The two threads, drawn first so that the arrows between them stay on top -->
+    <rect class="sa-node" x="32" y="100" width="1056" height="96" rx="10"/>
+    <rect class="sa-node" x="32" y="268" width="1056" height="96" rx="10"/>
+    <!-- The main thread, which sends each change -->
+    <text class="sa-name" x="52" y="132">Main thread</text>
+    <text class="sa-note" x="52" y="154">each frame, <tspan class="sa-code">App::logic</tspan> calls</text>
+    <text class="sa-call sa-code" x="52" y="174">update(&amp;settings)</text>
+    <path class="sa-line" d="M264 160 H964"/>
+    <path class="sa-line sa-dash" d="M964 160 H1012"/>
+    <path class="sa-line" d="M964 155 V165"/>
+    <path class="sa-line" d="M1012 155 V165"/>
+    <text class="sa-note" x="264" y="184">only a change is sent</text>
+    <circle class="sa-mark" cx="444" cy="160" r="5"/>
+    <text class="sa-call sa-code" x="444" y="146" text-anchor="middle">page: settings</text>
+    <circle class="sa-mark" cx="544" cy="160" r="5"/>
+    <text class="sa-call sa-code" x="544" y="146" text-anchor="middle">page: about</text>
+    <circle class="sa-mark" cx="854" cy="160" r="5"/>
+    <text class="sa-call sa-code" x="854" y="146" text-anchor="middle">page: home</text>
+    <text class="sa-text" x="964" y="146" text-anchor="middle">the window closes</text>
+    <text class="sa-note" x="972" y="184">waits for the save</text>
+    <!-- Each change goes to the autosave thread; closing the window closes the channel -->
+    <path class="sa-flow" d="M444 166 V304" marker-end="url(#sa-arrow)"/>
+    <path class="sa-flow" d="M544 166 V304" marker-end="url(#sa-arrow)"/>
+    <path class="sa-flow" d="M854 166 V304" marker-end="url(#sa-arrow)"/>
+    <text class="sa-note" x="436" y="236" text-anchor="end">sends a copy</text>
+    <path class="sa-case" d="M964 169 V304" marker-end="url(#sa-case-arrow)"/>
+    <text class="sa-note" x="972" y="236">closes the channel</text>
+    <!-- The autosave thread, which saves once the changes stop -->
+    <text class="sa-name" x="52" y="300"><tspan class="sa-code">autosave</tspan> thread</text>
+    <text class="sa-note sa-code" x="52" y="322">save_changes</text>
+    <path class="sa-line" d="M264 316 H444"/>
+    <text class="sa-note" x="354" y="304" text-anchor="middle">waits for a change</text>
+    <rect class="sa-wait" x="444" y="305" width="96" height="22" rx="4"/>
+    <rect class="sa-wait" x="544" y="305" width="200" height="22" rx="4"/>
+    <text class="sa-wait-text" x="644" y="320.5" text-anchor="middle">500 ms without a change</text>
+    <rect class="sa-mark" x="748" y="305" width="48" height="22" rx="4"/>
+    <text class="sa-mark-text" x="772" y="320.5" text-anchor="middle">save</text>
+    <path class="sa-line" d="M796 316 H854"/>
+    <rect class="sa-wait" x="854" y="305" width="106" height="22" rx="4"/>
+    <rect class="sa-mark" x="964" y="305" width="48" height="22" rx="4"/>
+    <text class="sa-mark-text" x="988" y="320.5" text-anchor="middle">save</text>
+    <text class="sa-note" x="542" y="346" text-anchor="middle">a newer change restarts the wait</text>
+    <text class="sa-note" x="772" y="346" text-anchor="middle">one save for both changes</text>
+    <text class="sa-note" x="988" y="346" text-anchor="middle">saved at once</text>
+    <!-- What happens when something goes wrong -->
+    <text class="sa-label" x="32" y="398">If a save fails:</text>
+    <rect class="sa-node" x="32" y="412" width="328" height="76" rx="10"/>
+    <text class="sa-text" x="48" y="436">it is reported; the thread keeps running,</text>
+    <text class="sa-text" x="48" y="455">and the next change tries again</text>
+    <text class="sa-note sa-code" x="48" y="476">AppError::StorageIo</text>
+    <text class="sa-label" x="396" y="398">If the app crashes or is killed:</text>
+    <rect class="sa-node" x="396" y="412" width="328" height="76" rx="10"/>
+    <text class="sa-text" x="412" y="436">the changes still waiting are lost,</text>
+    <text class="sa-text" x="412" y="455">but the file is never half-written</text>
+    <text class="sa-note sa-code" x="412" y="476">write_atomic</text>
+    <text class="sa-label" x="760" y="398">If <tspan class="sa-code">settings.json</tspan> cannot be loaded:</text>
+    <rect class="sa-node" x="760" y="412" width="328" height="76" rx="10"/>
+    <text class="sa-text" x="776" y="436">the app starts from the default settings</text>
+    <text class="sa-text" x="776" y="455">and never overwrites the file</text>
+    <text class="sa-note sa-code" x="776" y="476">settings::load_and_autosave</text>
+</svg>

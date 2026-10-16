@@ -60,7 +60,7 @@ pub enum AppError {
         source: io::Error,
     },
 
-    /// A [`Document`](crate::storage::Document) file exists but its content cannot be understood: the app uses the defaults instead.
+    /// A [`Document`](crate::storage::Document) file exists but its content cannot be understood: the app uses the defaults instead, without overwriting the file.
     #[error("the file {} is corrupt: {source}", path.display())]
     DocumentCorrupt {
         /// The document file.
@@ -69,7 +69,7 @@ pub enum AppError {
         source: serde_json::Error,
     },
 
-    /// A [`Document`](crate::storage::Document) file is too large to be read: the app uses the defaults instead.
+    /// A [`Document`](crate::storage::Document) file is too large to be read: the app uses the defaults instead, without overwriting the file.
     #[error(
         "the file {} is too large: {size} bytes, over the limit of {limit} bytes",
         path.display()
@@ -82,6 +82,14 @@ pub enum AppError {
         /// The size of the largest file read, in bytes.
         limit: u64,
     },
+
+    /// The thread of an [`AutoSave`](crate::storage::AutoSave) could not start: the app keeps the settings in memory.
+    #[error("cannot start saving changes automatically: {0}")]
+    AutoSaveUnavailable(io::Error),
+
+    /// The thread of an [`AutoSave`](crate::storage::AutoSave) crashed: the app keeps the latest changes in memory.
+    #[error("changes are no longer saved automatically: the thread that saved them crashed")]
+    AutoSaveStopped,
 
     /// A font could not be found or loaded: the app falls back to the bundled fonts.
     #[error("the font \"{0}\" is unavailable")]
@@ -114,6 +122,8 @@ impl AppError {
             | Self::DirNotSynced { .. }
             | Self::DocumentCorrupt { .. }
             | Self::DocumentTooLarge { .. }
+            | Self::AutoSaveUnavailable(_)
+            | Self::AutoSaveStopped
             | Self::FontUnavailable(_)
             | Self::UnsupportedLocale(_) => Severity::Recoverable,
         }

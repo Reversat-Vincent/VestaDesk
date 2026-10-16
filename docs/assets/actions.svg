@@ -74,8 +74,8 @@
     <rect class="ad-node" x="64" y="368" width="256" height="120" rx="10"/>
     <text class="ad-name ad-code" x="80" y="394">AppState</text>
     <text class="ad-text" x="80" y="420">all of the app's data</text>
-    <text class="ad-text ad-code" x="80" y="444">route: Route</text>
-    <text class="ad-note" x="304" y="444" text-anchor="end">the page shown</text>
+    <text class="ad-text ad-code" x="80" y="444">settings: Settings</text>
+    <text class="ad-note" x="304" y="444" text-anchor="end">saved to disk</text>
     <text class="ad-text" x="80" y="470" font-weight="600">only <tspan class="ad-code">apply</tspan> changes it</text>
     <!-- Background tasks -->
     <rect class="ad-node" x="888" y="140" width="200" height="148" rx="10"/>

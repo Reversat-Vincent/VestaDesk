@@ -9,11 +9,14 @@
 //! `routes!` declares [`Route`] and [`Route::ALL`] from one list, so no page can be missing from the
 //! activity bar, and every `match` on [`Route`] lists each page, with no catch-all arm.
 
+use serde::{Deserialize, Serialize};
+
 /// Declares [`Route`], with one variant per page, and [`Route::ALL`], which lists them in the same order.
 macro_rules! routes {
     ($($(#[$attribute:meta])* $route:ident,)+) => {
-        /// A page of the app, which the activity bar opens.
-        #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+        /// A page of the app, which the activity bar opens; the settings save it by the name of its variant in snake case, such as `about`.
+        #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[serde(rename_all = "snake_case")]
         pub enum Route {
             $($(#[$attribute])* $route,)+
         }
@@ -26,7 +29,7 @@ macro_rules! routes {
 }
 
 routes! {
-    /// The landing page, which the app opens on.
+    /// The landing page, which the app opens on when no other page is saved.
     #[default]
     Home,
     /// The user's preferences.

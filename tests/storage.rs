@@ -5,18 +5,27 @@
 //! A document is saved as indented JSON that starts with its format version. It loads back with
 //! defaults for a missing file or field, ignores unknown fields, upgrades older formats, and
 //! rejects a damaged or oversized file.
+//! An auto-save saves a change once it has stayed unchanged for the save delay, or when it is
+//! dropped: many quick changes give a single save, an unchanged value none, and a failed save is
+//! retried on the next change.
 #![cfg(test)]
 
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, Receiver};
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use vesta_desk::error::AppError;
 use vesta_desk::storage::{
-    Document, MAX_DOCUMENT_SIZE, ensure_dir, load, remove_temp_files, save, settings_dir_from,
-    write_atomic,
+    AutoSave, Document, MAX_DOCUMENT_SIZE, SAVE_DELAY, ensure_dir, load, remove_temp_files, save,
+    settings_dir_from, write_atomic,
 };
+
+/// The longest wait for a save: far more than the save delay, so that a slow machine still passes.
+const TIMEOUT: Duration = Duration::from_secs(10);
 
 /// A test document in its second format; the first one named `text` what is now `body`.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -70,6 +79,17 @@ fn names(dir: &Path) -> Vec<String> {
         .collect();
     names.sort();
     names
+}
+
+/// Returns an auto-save of numbers that starts from 0, and the channel that receives each number it saves.
+fn autosave() -> (AutoSave<u32>, Receiver<u32>) {
+    let (sender, saves) = mpsc::channel();
+    let autosave = AutoSave::start(0, move |&number| {
+        sender.send(number).unwrap();
+        Ok(())
+    })
+    .unwrap();
+    (autosave, saves)
 }
 
 /// Opens `file` the way some antivirus software does on Windows: other programs can read it, but not replace it.
@@ -345,4 +365,59 @@ fn a_byte_order_mark_is_skipped() {
     let dir = tempfile::tempdir().unwrap();
     write_note(dir.path(), "\u{feff}{\"body\": \"hello\"}");
     assert_eq!(load::<Note>(dir.path()).unwrap(), note("hello"));
+}
+
+/// A change is saved once no other change has followed it for the save delay, while the app keeps running.
+#[test]
+fn a_change_is_saved_once_it_has_stayed_unchanged_for_the_save_delay() {
+    let (mut autosave, saves) = autosave();
+    autosave.update(&1);
+    std::thread::sleep(SAVE_DELAY / 2);
+    let changed = Instant::now();
+    autosave.update(&2);
+    // On a busy machine, 1 may be saved before 2 comes: only the save of 2 is checked.
+    while saves.recv_timeout(TIMEOUT).unwrap() != 2 {}
+    assert!(changed.elapsed() >= SAVE_DELAY);
+}
+
+/// Dropping the auto-save, as the app does when it closes, saves the last of the changes at once.
+#[test]
+fn closing_saves_only_the_last_change() {
+    let (mut autosave, saves) = autosave();
+    for number in 1..=10 {
+        autosave.update(&number);
+    }
+    drop(autosave);
+    assert_eq!(saves.try_iter().collect::<Vec<_>>(), [10]);
+}
+
+#[test]
+fn a_value_equal_to_the_saved_one_is_not_saved() {
+    let (mut autosave, saves) = autosave();
+    autosave.update(&0);
+    drop(autosave);
+    assert_eq!(saves.try_iter().count(), 0);
+}
+
+/// After a failed save, the auto-save keeps running and tries again with the next change.
+#[test]
+fn a_failed_save_is_retried_on_the_next_change() {
+    let (sender, tries) = mpsc::channel();
+    let mut autosave = AutoSave::start(0, move |&number| {
+        sender.send(number).unwrap();
+        if number == 1 {
+            Err(AppError::StorageIo {
+                path: "settings.json".into(),
+                source: io::Error::other("disk full"),
+            })
+        } else {
+            Ok(())
+        }
+    })
+    .unwrap();
+    autosave.update(&1);
+    assert_eq!(tries.recv_timeout(TIMEOUT).unwrap(), 1);
+    autosave.update(&2);
+    drop(autosave);
+    assert_eq!(tries.try_iter().collect::<Vec<_>>(), [2]);
 }
