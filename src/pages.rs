@@ -6,13 +6,14 @@ mod settings;
 
 use egui::Ui;
 
+use crate::i18n::Language;
 use crate::router::Route;
 
-/// Draws the page of `route`.
-pub fn show(ui: &mut Ui, route: Route) {
+/// Draws the page of `route` in `language`.
+pub fn show(ui: &mut Ui, route: Route, language: Language) {
     match route {
-        Route::Home => home::show(ui),
-        Route::Settings => settings::show(ui),
-        Route::About => about::show(ui),
+        Route::Home => home::show(ui, language),
+        Route::Settings => settings::show(ui, language),
+        Route::About => about::show(ui, language),
     }
 }

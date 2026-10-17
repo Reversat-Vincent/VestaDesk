@@ -5,52 +5,43 @@
 //!
 //! # Adding a page
 //!
-//! A page added to the `routes!` list fails to build until it has its title and its content:
-//! `routes!` declares [`Route`] and [`Route::ALL`] from one list, so no page can be missing from the
+//! A page added to [`Route`] fails to build until it has its title, in every language, and its
+//! content: [`Route::ALL`] is declared from the same list, so no page can be missing from the
 //! activity bar, and every `match` on [`Route`] lists each page, with no catch-all arm.
 
-/// Declares [`Route`], with one variant per page, and [`Route::ALL`], which lists them in the same order.
-macro_rules! routes {
-    ($($(#[$attribute:meta])* $route:ident,)+) => {
-        /// A page of the app, which the activity bar opens.
-        #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-        pub enum Route {
-            $($(#[$attribute])* $route,)+
-        }
+use crate::i18n::{Language, Text};
 
-        impl Route {
-            /// Every page, in the order of the activity bar.
-            pub const ALL: &[Self] = &[$(Self::$route),+];
-        }
-    };
-}
-
-routes! {
-    /// The landing page, which the app opens on.
-    #[default]
-    Home,
-    /// The user's preferences.
-    Settings,
-    /// The app's version and third-party notices.
-    About,
+enum_with_all! {
+    /// A page of the app, which the activity bar opens.
+    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+    pub enum Route {
+        /// The landing page, which the app opens on.
+        #[default]
+        Home,
+        /// The user's preferences.
+        Settings,
+        /// The app's version and third-party notices.
+        About,
+    }
 }
 
 impl Route {
-    /// Returns the name of the page.
+    /// Returns the name of the page in `language`.
     ///
     /// # Examples
     ///
     /// ```
+    /// use vesta_desk::i18n::Language;
     /// use vesta_desk::router::Route;
     ///
-    /// assert_eq!(Route::Settings.title(), "Settings");
+    /// assert_eq!(Route::Settings.title(Language::French), "Paramètres");
     /// ```
     #[must_use]
-    pub fn title(self) -> &'static str {
-        match self {
-            Self::Home => "Home",
-            Self::Settings => "Settings",
-            Self::About => "About",
-        }
+    pub fn title(self, language: Language) -> &'static str {
+        language.text(match self {
+            Self::Home => Text::Home,
+            Self::Settings => Text::Settings,
+            Self::About => Text::About,
+        })
     }
 }

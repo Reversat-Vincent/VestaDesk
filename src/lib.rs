@@ -15,6 +15,21 @@
 //! [`error`] defines the expected failures and how each is handled, [`logging`] records
 //! diagnostics, and [`platform`] holds the Windows and Linux specifics.
 
+/// Declares an enum without fields and its `ALL` constant, which lists every variant in the order of the declaration, so that none can be missing from it.
+macro_rules! enum_with_all {
+    ($(#[$attribute:meta])* pub enum $name:ident { $($(#[$variant_attribute:meta])* $variant:ident,)+ }) => {
+        $(#[$attribute])*
+        pub enum $name {
+            $($(#[$variant_attribute])* $variant,)+
+        }
+
+        impl $name {
+            /// Every variant, in the order of the declaration.
+            pub const ALL: &[Self] = &[$(Self::$variant),+];
+        }
+    };
+}
+
 pub mod action;
 pub mod app;
 pub mod commands;
