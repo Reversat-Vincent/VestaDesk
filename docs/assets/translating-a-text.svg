@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="490" viewBox="0 0 1120 490" style="max-width: 100%; height: auto" role="img" aria-labelledby="tt-title tt-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <title id="tt-title">Translating a text</title>
+    <desc id="tt-desc">The screens draw each text in the language that AppState gives, English by default. They ask Language::text for a Text, such as Text::Settings. Language::text picks the dictionary of the language, English, French or Japanese, which gives the text as a &amp;'static str without allocating, such as Paramètres in French. Each dictionary is a match that lists every Text, with no catch-all arm, so the build fails until every dictionary has every text. Language::format fills in the values of a text, such as {version}, and Language::count gives the form of a text for a count.</desc>
+    <style>
+        .tt-bg { fill: #ffffff; }
+        .tt-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
+        .tt-lead { font-size: 14px; fill: #59636e; }
+        .tt-foot { font-size: 13px; fill: #59636e; }
+        .tt-node { fill: #f6f8fa; stroke: #d1d9e0; }
+        .tt-pick { fill: #ddf4ff; stroke: #b6e3ff; }
+        .tt-name { font-size: 15px; font-weight: 600; fill: #1f2328; }
+        .tt-text { font-size: 13px; fill: #1f2328; }
+        .tt-note { font-size: 12px; fill: #59636e; }
+        .tt-code { font-family: Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', monospace; }
+        .tt-call { font-size: 12.5px; fill: #0550ae; }
+        .tt-flow { fill: none; stroke: #0969da; stroke-width: 1.75; }
+        .tt-read { fill: none; stroke: #818b98; stroke-width: 1.75; }
+        .tt-flow-head { fill: #0969da; }
+        .tt-read-head { fill: #818b98; }
+        @media (prefers-color-scheme: dark) {
+            .tt-bg { fill: #0d1117; }
+            .tt-title, .tt-name, .tt-text { fill: #e6edf3; }
+            .tt-lead, .tt-foot, .tt-note { fill: #9198a1; }
+            .tt-node { fill: #151b23; stroke: #3d444d; }
+            .tt-pick { fill: #172c47; stroke: #23487a; }
+            .tt-call { fill: #79c0ff; }
+            .tt-flow { stroke: #4493f8; }
+            .tt-read { stroke: #9198a1; }
+            .tt-flow-head { fill: #4493f8; }
+            .tt-read-head { fill: #9198a1; }
+        }
+    </style>
+    <defs>
+        <marker id="tt-arrow-flow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tt-flow-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+        <marker id="tt-arrow-read" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tt-read-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+    </defs>
+    <rect class="tt-bg" width="1120" height="490"/>
+    <text class="tt-title" x="32" y="48">Translating a text</text>
+    <text class="tt-lead" x="32" y="74">Screens never write a text themselves: each time they draw one, they get it from the dictionary of the app's language.</text>
+    <!-- Screens -->
+    <rect class="tt-node" x="64" y="112" width="288" height="136" rx="10"/>
+    <text class="tt-name" x="80" y="138">Screens</text>
+    <text class="tt-note tt-code" x="336" y="138" text-anchor="end">App::ui</text>
+    <text class="tt-text" x="80" y="164">draw each text in the app's language</text>
+    <text class="tt-call tt-code" x="80" y="190">Route::Settings.title(language)</text>
+    <text class="tt-note" x="80" y="214">page titles, activity bar items</text>
+    <!-- AppState -->
+    <rect class="tt-node" x="64" y="288" width="288" height="72" rx="10"/>
+    <text class="tt-name tt-code" x="80" y="314">AppState</text>
+    <text class="tt-text tt-code" x="80" y="340">language: Language</text>
+    <text class="tt-note" x="336" y="340" text-anchor="end">English by default</text>
+    <!-- Language::text -->
+    <rect class="tt-node" x="472" y="112" width="224" height="248" rx="10"/>
+    <text class="tt-name tt-code" x="488" y="138">Language::text</text>
+    <text class="tt-text" x="488" y="164">picks the dictionary</text>
+    <text class="tt-text" x="488" y="183">of the language</text>
+    <text class="tt-note" x="488" y="336">allocates nothing</text>
+    <!-- One dictionary per language; French is the app's language in this example -->
+    <rect class="tt-node" x="816" y="112" width="272" height="72" rx="10"/>
+    <text class="tt-name" x="832" y="138">English dictionary</text>
+    <text class="tt-note tt-code" x="1072" y="138" text-anchor="end">english</text>
+    <text class="tt-text tt-code" x="832" y="164">Text::Settings =&gt; "Settings"</text>
+    <rect class="tt-pick" x="816" y="200" width="272" height="72" rx="10"/>
+    <text class="tt-name" x="832" y="226">French dictionary</text>
+    <text class="tt-note tt-code" x="1072" y="226" text-anchor="end">french</text>
+    <text class="tt-text tt-code" x="832" y="252">Text::Settings =&gt; "Paramètres"</text>
+    <rect class="tt-node" x="816" y="288" width="272" height="72" rx="10"/>
+    <text class="tt-name" x="832" y="314">Japanese dictionary</text>
+    <text class="tt-note tt-code" x="1072" y="314" text-anchor="end">japanese</text>
+    <text class="tt-text tt-code" x="832" y="340">Text::Settings =&gt; "設定"</text>
+    <!-- The screens ask for a text -->
+    <path class="tt-flow" d="M352 160 H471" marker-end="url(#tt-arrow-flow)"/>
+    <text class="tt-call tt-code" x="412" y="151" text-anchor="middle">Text::Settings</text>
+    <!-- Language::text gives it back -->
+    <path class="tt-flow" d="M472 216 H353" marker-end="url(#tt-arrow-flow)"/>
+    <text class="tt-call tt-code" x="412" y="207" text-anchor="middle">"Paramètres"</text>
+    <text class="tt-note tt-code" x="412" y="233" text-anchor="middle">&amp;'static str</text>
+    <!-- Language::text picks the dictionary of the language -->
+    <path class="tt-read" d="M696 148 H815" marker-end="url(#tt-arrow-read)"/>
+    <text class="tt-note tt-code" x="756" y="139" text-anchor="middle">English</text>
+    <path class="tt-flow" d="M696 236 H815" marker-end="url(#tt-arrow-flow)"/>
+    <text class="tt-call tt-code" x="756" y="227" text-anchor="middle">French</text>
+    <path class="tt-read" d="M696 324 H815" marker-end="url(#tt-arrow-read)"/>
+    <text class="tt-note tt-code" x="756" y="315" text-anchor="middle">Japanese</text>
+    <!-- The screens read the language -->
+    <path class="tt-read" d="M208 288 V249" marker-end="url(#tt-arrow-read)"/>
+    <text class="tt-note tt-code" x="220" y="273">language()</text>
+    <text class="tt-foot" x="32" y="420">Each dictionary is a <tspan class="tt-code">match</tspan> that lists every <tspan class="tt-code">Text</tspan>, with no catch-all arm: the build fails until every dictionary has every text.</text>
+    <text class="tt-foot" x="32" y="442"><tspan class="tt-code">Language::format</tspan> fills in the values of a text, such as <tspan class="tt-code">{version}</tspan>, and <tspan class="tt-code">Language::count</tspan> gives the form of a text for a count, such as 1 notification or 2 notifications.</text>
+    <text class="tt-foot" x="32" y="464">Example: when the app's language is French, the Settings page shows its title, Paramètres, and its activity bar item shows P.</text>
+</svg>

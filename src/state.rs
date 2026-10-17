@@ -1,6 +1,7 @@
 //! Domain state ([`AppState`]) and the pure state-transition function that applies actions ([`AppState::apply`]).
 
 use crate::action::AppAction;
+use crate::i18n::Language;
 use crate::router::Route;
 
 /// All of the app's data, in one place.
@@ -10,6 +11,8 @@ use crate::router::Route;
 pub struct AppState {
     /// The page shown in the central area.
     route: Route,
+    /// The language of the app's texts.
+    language: Language,
 }
 
 impl AppState {
@@ -29,6 +32,21 @@ impl AppState {
     #[must_use]
     pub fn route(&self) -> Route {
         self.route
+    }
+
+    /// Returns the language of the app's texts: [`Language::English`] by default.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vesta_desk::i18n::Language;
+    /// use vesta_desk::state::AppState;
+    ///
+    /// assert_eq!(AppState::default().language(), Language::English);
+    /// ```
+    #[must_use]
+    pub fn language(&self) -> Language {
+        self.language
     }
 
     /// Applies `action` to the data; this is the only function that changes it.

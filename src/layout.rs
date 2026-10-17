@@ -14,6 +14,7 @@
 use egui::{Button, CentralPanel, Panel, Rect, ScrollArea, Ui};
 
 use crate::action::{ActionQueue, AppAction};
+use crate::i18n::Language;
 use crate::pages;
 use crate::router::Route;
 use crate::state::AppState;
@@ -38,6 +39,7 @@ pub struct Areas {
 /// Draws the three areas over all of `ui` from `state`, pushes the user's actions to `actions`, and returns where it placed the areas.
 pub fn show(ui: &mut Ui, state: &AppState, actions: &mut ActionQueue) -> Areas {
     let route = state.route();
+    let language = state.language();
     // A panel takes its side of the space the earlier panels left: the status bar goes first to span the whole width.
     let status_bar = Panel::bottom("status_bar")
         .resizable(false)
@@ -48,7 +50,7 @@ pub fn show(ui: &mut Ui, state: &AppState, actions: &mut ActionQueue) -> Areas {
     let activity_bar = Panel::left("activity_bar")
         .resizable(false)
         .exact_size(ACTIVITY_BAR_WIDTH)
-        .show(ui, |ui| menu(ui, route, actions))
+        .show(ui, |ui| menu(ui, route, language, actions))
         .response
         .rect;
     let page = CentralPanel::default()
@@ -56,7 +58,7 @@ pub fn show(ui: &mut Ui, state: &AppState, actions: &mut ActionQueue) -> Areas {
             ScrollArea::both()
                 .id_salt(route)
                 .auto_shrink(false)
-                .show(ui, |ui| pages::show(ui, route))
+                .show(ui, |ui| pages::show(ui, route, language))
         })
         .response
         .rect;
@@ -67,11 +69,11 @@ pub fn show(ui: &mut Ui, state: &AppState, actions: &mut ActionQueue) -> Areas {
     }
 }
 
-/// Draws the item of each page, highlights the one of `current`, and pushes [`AppAction::Navigate`] when the user clicks one.
-fn menu(ui: &mut Ui, current: Route, actions: &mut ActionQueue) {
+/// Draws the item of each page in `language`, highlights the one of `current`, and pushes [`AppAction::Navigate`] when the user clicks one.
+fn menu(ui: &mut Ui, current: Route, language: Language, actions: &mut ActionQueue) {
     ui.vertical_centered_justified(|ui| {
         for &route in Route::ALL {
-            let item = Button::selectable(route == current, initial(route.title()));
+            let item = Button::selectable(route == current, initial(route.title(language)));
             if ui.add(item).clicked() {
                 actions.push(AppAction::Navigate(route));
             }
