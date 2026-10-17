@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="468" viewBox="0 0 1120 468" style="max-width: 100%; height: auto" role="img" aria-labelledby="tt-title tt-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="490" viewBox="0 0 1120 490" style="max-width: 100%; height: auto" role="img" aria-labelledby="tt-title tt-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
     <title id="tt-title">Translating a text</title>
-    <desc id="tt-desc">The screens draw each text in the language that AppState gives, English by default. They ask Language::text for a Text, such as Text::Settings. Language::text picks the dictionary of the language, English, French or Japanese, which gives the text as a &amp;'static str without allocating, such as Paramètres in French. Each dictionary is a match that lists every Text, with no catch-all arm, so the build fails until every dictionary has every text.</desc>
+    <desc id="tt-desc">The screens draw each text in the language that AppState gives, English by default. They ask Language::text for a Text, such as Text::Settings. Language::text picks the dictionary of the language, English, French or Japanese, which gives the text as a &amp;'static str without allocating, such as Paramètres in French. Each dictionary is a match that lists every Text, with no catch-all arm, so the build fails until every dictionary has every text. Language::format fills in the values of a text, such as {version}, and Language::count gives the form of a text for a count.</desc>
     <style>
         .tt-bg { fill: #ffffff; }
         .tt-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
@@ -38,7 +38,7 @@
             <path class="tt-read-head" d="M0 1 L10 5 L0 9 Z"/>
         </marker>
     </defs>
-    <rect class="tt-bg" width="1120" height="468"/>
+    <rect class="tt-bg" width="1120" height="490"/>
     <text class="tt-title" x="32" y="48">Translating a text</text>
     <text class="tt-lead" x="32" y="74">Screens never write a text themselves: each time they draw one, they get it from the dictionary of the app's language.</text>
     <!-- Screens -->
@@ -90,5 +90,6 @@
     <path class="tt-read" d="M208 288 V249" marker-end="url(#tt-arrow-read)"/>
     <text class="tt-note tt-code" x="220" y="273">language()</text>
     <text class="tt-foot" x="32" y="420">Each dictionary is a <tspan class="tt-code">match</tspan> that lists every <tspan class="tt-code">Text</tspan>, with no catch-all arm: the build fails until every dictionary has every text.</text>
-    <text class="tt-foot" x="32" y="442">Example: when the app's language is French, the Settings page shows its title, Paramètres, and its activity bar item shows P.</text>
+    <text class="tt-foot" x="32" y="442"><tspan class="tt-code">Language::format</tspan> fills in the values of a text, such as <tspan class="tt-code">{version}</tspan>, and <tspan class="tt-code">Language::count</tspan> gives the form of a text for a count, such as 1 notification or 2 notifications.</text>
+    <text class="tt-foot" x="32" y="464">Example: when the app's language is French, the Settings page shows its title, Paramètres, and its activity bar item shows P.</text>
 </svg>
