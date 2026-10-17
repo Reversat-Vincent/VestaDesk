@@ -19,7 +19,7 @@ const ERROR_SHARING_VIOLATION: i32 = 32;
 
 /// Returns whether `error` can come from another program briefly holding a file, such as an antivirus scanning it.
 ///
-/// Only Windows reports such errors: on Linux, a file can be replaced while other programs hold it.
+/// Only Windows reports such errors: on Linux, a file can be read or replaced while other programs hold it.
 ///
 /// # Examples
 ///

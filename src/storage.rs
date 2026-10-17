@@ -24,6 +24,7 @@
 //! - Unknown fields are ignored, so a file from a newer version still loads.
 //! - [`Document::migrate`] upgrades a file in an older format, then [`Document::correct`] fixes out-of-range values.
 //! - A file over [`MAX_DOCUMENT_SIZE`], or whose content is not a valid document, is rejected.
+//! - On Windows, while another program briefly holds the file, the read is retried for about a second.
 //!
 #![doc = include_str!("../docs/assets/loading-a-document.svg")]
 //!
@@ -33,8 +34,9 @@
 //! each time it changes. It saves on a thread of its own, so that a slow disk or a file
 //! held by another program never slows down the app. It waits until the value has stayed
 //! unchanged for [`SAVE_DELAY`], so that many quick changes in a row give a single save,
-//! but saves the last change at once when the app closes. A failed save is reported,
-//! and the next change tries again.
+//! but saves the last change at once when the app closes. A value equal to the one saved
+//! is not saved again. A failed save is reported, and the next change, or the closing of
+//! the app, tries again.
 //!
 #![doc = include_str!("../docs/assets/saving-automatically.svg")]
 
@@ -44,7 +46,7 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -70,7 +72,7 @@ const SETTINGS_DIR_ENV: &str = "VESTADESK_SETTINGS_DIR";
 /// The end of the name of every temporary file that [`write_atomic`] creates.
 const TEMP_SUFFIX: &str = ".vestadesk.tmp";
 
-/// The waits, in milliseconds, between attempts to replace a file that another program holds: 1.27 seconds in all.
+/// The waits, in milliseconds, between attempts to read or replace a file that another program holds: 1.27 seconds in all.
 const RETRY_DELAYS_MS: [u64; 7] = [10, 20, 40, 80, 160, 320, 640];
 
 /// The byte order mark that some editors write at the start of a UTF-8 file, which JSON does not allow.
@@ -171,7 +173,7 @@ pub fn ensure_dir(dir: PathBuf) -> Result<PathBuf> {
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     let temp = temp_path(path);
     write_new(&temp, contents)
-        .and_then(|()| replace(&temp, path))
+        .and_then(|()| retry_while_in_use(|| fs::rename(&temp, path)))
         .inspect_err(|_| discard_temp_file(&temp))
         .map_err(io_error(path))?;
     // The file is saved at this point, so a folder that cannot be synced is reported, not returned.
@@ -201,7 +203,8 @@ pub fn remove_temp_files(dir: &Path) -> Result<()> {
 
 /// Reads the document `T` from its file in `dir`, or returns the default document if the file does not exist.
 ///
-/// See [Documents](crate::storage#documents) for how the file is read.
+/// See [Documents](crate::storage#documents) for how the file is read. On Windows, it can take
+/// about a second while another program holds the file.
 ///
 /// # Errors
 ///
@@ -256,7 +259,7 @@ pub fn save<T: Document>(dir: &Path, document: &T) -> Result<()> {
 
 /// Saves a value each time it changes, on a thread of its own, as described in [Saving automatically](crate::storage#saving-automatically).
 ///
-/// Dropping it, as the app does when it closes, saves the last change at once and waits until it is saved.
+/// Dropping it, as the app does when it closes, saves at once the last change not saved yet and waits for that save.
 #[derive(Debug)]
 pub struct AutoSave<T> {
     /// The last value given to [`AutoSave::update`], or the saved value it started from.
@@ -273,17 +276,18 @@ impl<T: Clone + PartialEq + Send + 'static> AutoSave<T> {
     /// Returns [`AppError::AutoSaveUnavailable`] if the thread cannot start.
     pub fn start(saved: T, save: impl FnMut(&T) -> Result<()> + Send + 'static) -> Result<Self> {
         let (sender, changes) = mpsc::channel();
+        let latest = saved.clone();
         let thread = thread::Builder::new()
             .name("autosave".to_owned())
-            .spawn(move || save_changes(&changes, save))
+            .spawn(move || save_changes(saved, &changes, save))
             .map_err(AppError::AutoSaveUnavailable)?;
         Ok(Self {
-            latest: saved,
+            latest,
             thread: Some((sender, thread)),
         })
     }
 
-    /// Saves `value` if it differs from the previous one, once no other change has followed it for [`SAVE_DELAY`].
+    /// Saves `value` once no other change has followed it for [`SAVE_DELAY`], unless it equals the value saved.
     pub fn update(&mut self, value: &T) {
         if *value == self.latest {
             return;
@@ -318,16 +322,35 @@ impl<T> Drop for AutoSave<T> {
     }
 }
 
-/// Saves with `save` each value from `changes` once no newer one has come for [`SAVE_DELAY`], or at once if the channel closes, until it is closed and empty.
-fn save_changes<T>(changes: &Receiver<T>, mut save: impl FnMut(&T) -> Result<()>) {
-    while let Ok(mut value) = changes.recv() {
-        while let Ok(newer) = changes.recv_timeout(SAVE_DELAY) {
-            value = newer;
+/// Saves with `save` the last value from `changes` once no newer one has come for [`SAVE_DELAY`], or at once when the channel closes, unless it equals the last value saved, `saved` at first.
+///
+/// A failed save is tried again with the next change, or when the channel closes.
+fn save_changes<T: Clone + PartialEq>(
+    mut saved: T,
+    changes: &Receiver<T>,
+    mut save: impl FnMut(&T) -> Result<()>,
+) {
+    let mut latest = saved.clone();
+    let mut save_if_changed = |value: &T| {
+        if *value != saved {
+            match save(value) {
+                Ok(()) => saved = value.clone(),
+                Err(error) => error.report(),
+            }
         }
-        if let Err(error) = save(&value) {
-            error.report();
+    };
+    'changes: while let Ok(value) = changes.recv() {
+        latest = value;
+        loop {
+            match changes.recv_timeout(SAVE_DELAY) {
+                Ok(newer) => latest = newer,
+                Err(RecvTimeoutError::Timeout) => break,
+                Err(RecvTimeoutError::Disconnected) => break 'changes,
+            }
         }
+        save_if_changed(&latest);
     }
+    save_if_changed(&latest);
 }
 
 /// A document as [`save`] writes it: its format version, then its fields.
@@ -342,7 +365,7 @@ struct Versioned<'a, T> {
 
 /// Reads the file at `path`, which must not be over [`MAX_DOCUMENT_SIZE`], or returns `None` if it does not exist.
 fn read_document(path: &Path) -> Result<Option<Vec<u8>>> {
-    let file = match File::open(path) {
+    let file = match retry_while_in_use(|| File::open(path)) {
         Ok(file) => file,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(io_error(path)(error)),
@@ -386,17 +409,17 @@ fn write_new(path: &Path, contents: &[u8]) -> io::Result<()> {
     file.sync_all()
 }
 
-/// Renames `temp` to `path`, replacing the file there, and retries while another program holds either file.
-fn replace(temp: &Path, path: &Path) -> io::Result<()> {
+/// Runs `access`, which opens or renames files, and runs it again while another program holds one of them, for about a second at most.
+fn retry_while_in_use<T>(mut access: impl FnMut() -> io::Result<T>) -> io::Result<T> {
     for delay in RETRY_DELAYS_MS {
-        match fs::rename(temp, path) {
+        match access() {
             Err(error) if platform::is_file_in_use(&error) => {
                 thread::sleep(Duration::from_millis(delay));
             }
-            renamed => return renamed,
+            result => return result,
         }
     }
-    fs::rename(temp, path)
+    access()
 }
 
 /// Deletes `temp`, the temporary file of a failed save, if the save got to create it.

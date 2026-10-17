@@ -1,12 +1,13 @@
 //! The default settings are saved as readable JSON with their format version, at 100 % zoom on the
 //! Home page, and every page is saved and loads back. When the settings are loaded, a missing value
 //! takes its default, an out-of-range zoom is corrected, and an unknown page gives the Home page.
+//! A zoom that is not a number is corrected to the default zoom.
 
 use std::fs;
 
 use vesta_desk::router::Route;
 use vesta_desk::settings::{MAX_ZOOM, MIN_ZOOM, Settings};
-use vesta_desk::storage::{load, save};
+use vesta_desk::storage::{Document, load, save};
 
 #[test]
 fn the_default_settings_are_saved_as_readable_json_with_their_format_version() {
@@ -60,6 +61,17 @@ fn an_out_of_range_zoom_is_corrected() {
         };
         assert_eq!(settings, expected, "zoom {zoom}");
     }
+}
+
+/// A zoom that is not a number, which no file can hold but a calculation can give, takes the default zoom.
+#[test]
+fn a_zoom_that_is_not_a_number_is_corrected_to_the_default() {
+    let mut settings = Settings {
+        zoom: f32::NAN,
+        ..Settings::default()
+    };
+    settings.correct();
+    assert_eq!(settings, Settings::default());
 }
 
 /// A page that only a newer version has, or a value that is not a page, gives the Home page, and the other settings are kept.

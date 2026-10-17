@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1120" height="520" viewBox="0 0 1120 520" style="max-width: 100%; height: auto" role="img" aria-labelledby="sa-title sa-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
     <title id="sa-title">Saving automatically</title>
-    <desc id="sa-desc">AutoSave saves a value, here the Settings, on a thread of its own named autosave. On every frame, App::logic calls update with the settings, which sends a copy of them to that thread only if they changed. The thread waits until no newer change has come for SAVE_DELAY, 500 ms, and each newer change restarts the wait: when the user opens the Settings page, then the About page soon after, a single save writes page: about. When the window closes, the channel to the thread closes, so the thread saves the last change, page: home, at once, and the app waits for that save before it exits. If a save fails, it is reported, the thread keeps running, and the next change tries again. If the app crashes or is killed, the changes still waiting are lost, but write_atomic never leaves a half-written file. If settings.json cannot be loaded, the app starts from the default settings and never overwrites the file.</desc>
+    <desc id="sa-desc">AutoSave saves a value, here the Settings, on a thread of its own named autosave. On every frame, App::logic calls update with the settings, which sends a copy of them to that thread only if they changed. The thread waits until no newer change has come for SAVE_DELAY, 500 ms, and each newer change restarts the wait: when the user opens the Settings page, then the About page soon after, a single save writes page: about. When the window closes, the channel to the thread closes, so the thread saves the last change, page: home, at once, and the app waits for that save before it exits. A value equal to the one saved is not saved again. If a save fails, it is reported, the thread keeps running, and the next change, or the closing of the window, tries again. If the app crashes or is killed, the changes still waiting are lost, but write_atomic never leaves a half-written file. If settings.json cannot be loaded, the app starts from the default settings and never overwrites the file.</desc>
     <style>
         .sa-bg { fill: #ffffff; }
         .sa-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
@@ -46,7 +46,7 @@
     </defs>
     <rect class="sa-bg" width="1120" height="520"/>
     <text class="sa-title" x="32" y="48">Saving automatically</text>
-    <text class="sa-lead" x="32" y="74"><tspan class="sa-code">AutoSave</tspan> saves a value, here the <tspan class="sa-code">Settings</tspan>, on a thread of its own once it has stayed unchanged for <tspan class="sa-code">SAVE_DELAY</tspan>.</text>
+    <text class="sa-lead" x="32" y="74"><tspan class="sa-code">AutoSave</tspan> saves a value, here the <tspan class="sa-code">Settings</tspan>, on a thread of its own once it has stayed unchanged for <tspan class="sa-code">SAVE_DELAY</tspan>, unless it is already saved.</text>
     <!-- The two threads, drawn first so that the arrows between them stay on top -->
     <rect class="sa-node" x="32" y="100" width="1056" height="96" rx="10"/>
     <rect class="sa-node" x="32" y="268" width="1056" height="96" rx="10"/>
@@ -95,7 +95,7 @@
     <text class="sa-label" x="32" y="398">If a save fails:</text>
     <rect class="sa-node" x="32" y="412" width="328" height="76" rx="10"/>
     <text class="sa-text" x="48" y="436">it is reported; the thread keeps running,</text>
-    <text class="sa-text" x="48" y="455">and the next change tries again</text>
+    <text class="sa-text" x="48" y="455">and the next change or closing tries again</text>
     <text class="sa-note sa-code" x="48" y="476">AppError::StorageIo</text>
     <text class="sa-label" x="396" y="398">If the app crashes or is killed:</text>
     <rect class="sa-node" x="396" y="412" width="328" height="76" rx="10"/>

@@ -6,8 +6,9 @@
 //! defaults for a missing file or field, ignores unknown fields, upgrades older formats, and
 //! rejects a damaged or oversized file.
 //! An auto-save saves a change once it has stayed unchanged for the save delay, or when it is
-//! dropped: many quick changes give a single save, an unchanged value none, and a failed save is
-//! retried on the next change.
+//! dropped: many quick changes give a single save, a value equal to the saved one none, a value
+//! given again does not delay its save, and a failed save is retried on the next change or when
+//! the auto-save is dropped.
 #![cfg(test)]
 
 use std::fs;
@@ -92,6 +93,24 @@ fn autosave() -> (AutoSave<u32>, Receiver<u32>) {
     (autosave, saves)
 }
 
+/// Returns an auto-save of numbers that starts from 0 and fails to save 1, and the channel that receives each number it tries to save.
+fn failing_autosave() -> (AutoSave<u32>, Receiver<u32>) {
+    let (sender, tries) = mpsc::channel();
+    let autosave = AutoSave::start(0, move |&number| {
+        sender.send(number).unwrap();
+        if number == 1 {
+            Err(AppError::StorageIo {
+                path: "settings.json".into(),
+                source: io::Error::other("disk full"),
+            })
+        } else {
+            Ok(())
+        }
+    })
+    .unwrap();
+    (autosave, tries)
+}
+
 /// Opens `file` the way some antivirus software does on Windows: other programs can read it, but not replace it.
 #[cfg(target_os = "windows")]
 fn hold(file: &Path) -> fs::File {
@@ -102,6 +121,18 @@ fn hold(file: &Path) -> fs::File {
     fs::OpenOptions::new()
         .read(true)
         .share_mode(FILE_SHARE_READ)
+        .open(file)
+        .unwrap()
+}
+
+/// Opens `file` the way some programs do on Windows while they write it: other programs can neither read nor replace it.
+#[cfg(target_os = "windows")]
+fn hold_exclusively(file: &Path) -> fs::File {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0)
         .open(file)
         .unwrap()
 }
@@ -367,6 +398,21 @@ fn a_byte_order_mark_is_skipped() {
     assert_eq!(load::<Note>(dir.path()).unwrap(), note("hello"));
 }
 
+/// On Windows, a file that another program holds for a moment, without even letting others read it, still loads.
+#[cfg(target_os = "windows")]
+#[test]
+fn a_file_held_for_a_moment_still_loads() {
+    let dir = tempfile::tempdir().unwrap();
+    write_note(dir.path(), r#"{"body": "hello"}"#);
+    let held = hold_exclusively(&dir.path().join(Note::FILE_NAME));
+    let release = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        drop(held);
+    });
+    assert_eq!(load::<Note>(dir.path()).unwrap(), note("hello"));
+    release.join().unwrap();
+}
+
 /// A change is saved once no other change has followed it for the save delay, while the app keeps running.
 #[test]
 fn a_change_is_saved_once_it_has_stayed_unchanged_for_the_save_delay() {
@@ -391,33 +437,47 @@ fn closing_saves_only_the_last_change() {
     assert_eq!(saves.try_iter().collect::<Vec<_>>(), [10]);
 }
 
+/// A value equal to the saved one is not saved, even after other changes, such as opening another page and coming back.
 #[test]
 fn a_value_equal_to_the_saved_one_is_not_saved() {
     let (mut autosave, saves) = autosave();
-    autosave.update(&0);
+    for number in [0, 1, 0] {
+        autosave.update(&number);
+    }
     drop(autosave);
     assert_eq!(saves.try_iter().count(), 0);
+}
+
+/// Giving the same value again, as the app does on every frame, does not restart the wait for its save.
+#[test]
+fn a_value_given_again_does_not_delay_its_save() {
+    let (mut autosave, saves) = autosave();
+    autosave.update(&1);
+    let changed = Instant::now();
+    // A frame every 50 ms gives 1 again: if that restarted the wait, 1 would never be saved.
+    while saves.recv_timeout(SAVE_DELAY / 10) != Ok(1) {
+        assert!(changed.elapsed() < TIMEOUT, "1 was never saved");
+        autosave.update(&1);
+    }
 }
 
 /// After a failed save, the auto-save keeps running and tries again with the next change.
 #[test]
 fn a_failed_save_is_retried_on_the_next_change() {
-    let (sender, tries) = mpsc::channel();
-    let mut autosave = AutoSave::start(0, move |&number| {
-        sender.send(number).unwrap();
-        if number == 1 {
-            Err(AppError::StorageIo {
-                path: "settings.json".into(),
-                source: io::Error::other("disk full"),
-            })
-        } else {
-            Ok(())
-        }
-    })
-    .unwrap();
+    let (mut autosave, tries) = failing_autosave();
     autosave.update(&1);
     assert_eq!(tries.recv_timeout(TIMEOUT).unwrap(), 1);
     autosave.update(&2);
     drop(autosave);
     assert_eq!(tries.try_iter().collect::<Vec<_>>(), [2]);
+}
+
+/// A failed save that no change follows is tried again when the auto-save is dropped, as the app does when it closes.
+#[test]
+fn a_failed_save_is_retried_on_closing() {
+    let (mut autosave, tries) = failing_autosave();
+    autosave.update(&1);
+    assert_eq!(tries.recv_timeout(TIMEOUT).unwrap(), 1);
+    drop(autosave);
+    assert_eq!(tries.try_iter().collect::<Vec<_>>(), [1]);
 }

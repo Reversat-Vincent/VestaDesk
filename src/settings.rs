@@ -25,7 +25,7 @@ pub const MAX_ZOOM: f32 = 3.0;
 pub struct Settings {
     /// The zoom factor of the whole interface, from [`MIN_ZOOM`] to [`MAX_ZOOM`]; 1.0 is 100 %.
     pub zoom: f32,
-    /// The page open when the app last closed, which it reopens on; a page that this version does not have gives the Home page.
+    /// The page open when the app last closed, which it reopens on, or the Home page if this version cannot read the saved page.
     #[serde(deserialize_with = "or_default")]
     pub page: Route,
 }
@@ -44,7 +44,12 @@ impl Document for Settings {
     const VERSION: u32 = 1;
 
     fn correct(&mut self) {
-        self.zoom = self.zoom.clamp(MIN_ZOOM, MAX_ZOOM);
+        // A zoom that is not a number has no nearest limit, so it takes the default.
+        self.zoom = if self.zoom.is_nan() {
+            Self::default().zoom
+        } else {
+            self.zoom.clamp(MIN_ZOOM, MAX_ZOOM)
+        };
     }
 }
 

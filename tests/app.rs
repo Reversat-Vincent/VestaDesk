@@ -11,6 +11,7 @@ use vesta_desk::action::AppAction;
 use vesta_desk::app::{App, MIN_WINDOW_SIZE, WINDOW_SIZE, native_options};
 use vesta_desk::router::Route;
 use vesta_desk::state::AppState;
+use vesta_desk::storage::MAX_DOCUMENT_SIZE;
 
 /// Runs one frame of `app`, whose window context is `ctx`, as eframe does but without a window.
 fn run_frame(ctx: &Context, app: &mut App) {
@@ -66,21 +67,28 @@ fn the_app_reopens_on_the_page_that_was_open_when_it_closed() {
     assert_eq!(reopened.state().route(), Route::About);
 }
 
-/// The app starts from the default settings and keeps its changes in memory, so that the user can still repair the file.
+/// The app starts from the default settings and keeps its changes in memory, so that the user can still repair the file, whether it is corrupt or too large.
 #[test]
 fn a_settings_file_that_cannot_be_read_is_never_overwritten() {
-    let settings_dir = tempfile::tempdir().unwrap();
-    let file = settings_dir.path().join("settings.json");
-    fs::write(&file, "not json").unwrap();
-    let ctx = Context::default();
-    let mut app = App::new(ctx.clone(), Some(settings_dir.path().to_owned()));
-    assert_eq!(app.state(), &AppState::default());
-    app.sender()
-        .send(AppAction::Navigate(Route::About))
-        .unwrap();
-    run_frame(&ctx, &mut app);
-    drop(app);
-    assert_eq!(fs::read_to_string(&file).unwrap(), "not json");
+    let too_large = " ".repeat(usize::try_from(MAX_DOCUMENT_SIZE).unwrap() + 1);
+    for (case, contents) in [("corrupt", "not json"), ("too large", too_large.as_str())] {
+        let settings_dir = tempfile::tempdir().unwrap();
+        let file = settings_dir.path().join("settings.json");
+        fs::write(&file, contents).unwrap();
+        let ctx = Context::default();
+        let mut app = App::new(ctx.clone(), Some(settings_dir.path().to_owned()));
+        assert_eq!(app.state(), &AppState::default(), "{case}");
+        app.sender()
+            .send(AppAction::Navigate(Route::About))
+            .unwrap();
+        run_frame(&ctx, &mut app);
+        assert_eq!(app.state().route(), Route::About, "{case}");
+        drop(app);
+        assert!(
+            fs::read_to_string(&file).unwrap() == contents,
+            "the {case} file was overwritten"
+        );
+    }
 }
 
 /// Without a display the window cannot be created: the app logs the error and exits with a failure status instead of crashing.

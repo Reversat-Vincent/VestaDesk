@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1120" height="656" viewBox="0 0 1120 656" style="max-width: 100%; height: auto" role="img" aria-labelledby="ld-title ld-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
     <title id="ld-title">Loading a document</title>
-    <desc id="ld-desc">load reads a document in five steps, here settings.json into Settings. 1: it reads the file; no file returns the default document, a file over 1 MiB returns DocumentTooLarge, and a file that cannot be read returns StorageIo. 2: it parses the JSON into a map of fields; anything but a JSON object returns DocumentCorrupt. 3: it takes out the version field; an older version is upgraded by migrate, a newer one is kept as it is with an info message, and a file without a version is read as the current format. 4: it fills the document from the remaining fields; a missing field takes its default value, an unknown field is ignored, an unknown page becomes the Home page, and a value of the wrong type returns DocumentCorrupt. 5: correct brings out-of-range values back in range.</desc>
+    <desc id="ld-desc">load reads a document in five steps, here settings.json into Settings. 1: it reads the file; no file returns the default document, a file over 1 MiB returns DocumentTooLarge, and a file that cannot be read returns StorageIo, on Windows after retrying for about a second while another program holds it. 2: it parses the JSON into a map of fields; anything but a JSON object returns DocumentCorrupt. 3: it takes out the version field; an older version is upgraded by migrate, a newer one is kept as it is with an info message, and a file without a version is read as the current format. 4: it fills the document from the remaining fields; a missing field takes its default value, an unknown field is ignored, a page it cannot read, such as one that only a newer version has, becomes the Home page, and any other value of the wrong type returns DocumentCorrupt. 5: correct brings out-of-range values back in range.</desc>
     <style>
         .ld-bg { fill: #ffffff; }
         .ld-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
@@ -103,6 +103,7 @@
     <path class="ld-case" d="M524 192 H547" marker-end="url(#ld-case-arrow)"/>
     <rect class="ld-err" x="560" y="181" width="92" height="22" rx="6"/>
     <text class="ld-err-text ld-code" x="606" y="196.5" text-anchor="middle">StorageIo</text>
+    <text class="ld-note" x="664" y="196.5">on Windows, retried for about a second while another program holds it</text>
     <!-- Step 2 case -->
     <path class="ld-case" d="M312 258 H371" marker-end="url(#ld-case-arrow)"/>
     <text class="ld-text" x="380" y="262.5">not a JSON object</text>
@@ -135,10 +136,10 @@
     <text class="ld-text" x="380" y="427.5">unknown field</text>
     <path class="ld-case" d="M524 423 H547" marker-end="url(#ld-case-arrow)"/>
     <text class="ld-text" x="560" y="427.5">ignored</text>
-    <text class="ld-text" x="380" y="449.5">unknown page</text>
+    <text class="ld-text" x="380" y="449.5">page it cannot read</text>
     <path class="ld-case" d="M524 445 H547" marker-end="url(#ld-case-arrow)"/>
     <text class="ld-text" x="560" y="449.5">becomes the Home page</text>
-    <text class="ld-text" x="380" y="471.5">wrong value type</text>
+    <text class="ld-text" x="380" y="471.5">other wrong value type</text>
     <path class="ld-case" d="M524 467 H547" marker-end="url(#ld-case-arrow)"/>
     <rect class="ld-err" x="560" y="456" width="134" height="22" rx="6"/>
     <text class="ld-err-text ld-code" x="627" y="471.5" text-anchor="middle">DocumentCorrupt</text>
