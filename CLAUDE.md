@@ -17,6 +17,7 @@ When a change makes it wrong or incomplete, update it in the same change, withou
 - A ticket that implies too much code at once is split into sub-tickets. The main ticket has one branch, named after it, and its sub-tickets are done one by one on that branch.
 - Commit messages: a plain summary. Never include the issue key.
 - Never commit without the developer's approval.
+- When the developer asks to commit, update Linear in the same turn: the committed ticket or sub-ticket goes to Done, and so does its main ticket once all its sub-tickets are Done.
 - Never push: the developer pushes.
 - Never create a pull request: the user opens PRs manually on GitHub.
 - Checks, lint policy, code, and documentation conventions: `CONTRIBUTING.md`.
