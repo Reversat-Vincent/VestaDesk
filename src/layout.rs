@@ -11,13 +11,14 @@
 //! each item shows the first letter of its page's title. Clicking an item opens its page, and the
 //! item of the open page is highlighted. Each page keeps its own scroll position.
 
-use egui::{Button, CentralPanel, Panel, Rect, ScrollArea, Ui};
+use egui::{Button, CentralPanel, Frame, Panel, Rect, ScrollArea, Ui};
 
 use crate::action::{ActionQueue, AppAction};
 use crate::i18n::Language;
 use crate::pages;
 use crate::router::Route;
 use crate::state::AppState;
+use crate::theme;
 
 /// The width of the activity bar, in points.
 pub const ACTIVITY_BAR_WIDTH: f32 = 48.0;
@@ -53,7 +54,9 @@ pub fn show(ui: &mut Ui, state: &AppState, actions: &mut ActionQueue) -> Areas {
         .show(ui, |ui| menu(ui, route, language, actions))
         .response
         .rect;
+    // Panels have the bar colour, so the page sets its own.
     let page = CentralPanel::default()
+        .frame(Frame::central_panel(ui.style()).fill(theme::colors(ui).background))
         .show(ui, |ui| {
             ScrollArea::both()
                 .id_salt(route)

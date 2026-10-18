@@ -1,12 +1,14 @@
-//! The main window has the app's title and a minimum size, the app starts from the default data and
-//! applies the actions sent to it on the next frame, and a window that cannot be created is reported as an error.
+//! The main window has the app's title and a minimum size, the app starts from the default data,
+//! draws with the colour schemes and applies the actions sent to it on the next frame, and a window
+//! that cannot be created is reported as an error.
 
 use eframe::App as _;
-use egui::{Context, RawInput};
+use egui::{Context, RawInput, Theme};
 use vesta_desk::action::AppAction;
 use vesta_desk::app::{App, MIN_WINDOW_SIZE, WINDOW_SIZE, native_options};
 use vesta_desk::router::Route;
 use vesta_desk::state::AppState;
+use vesta_desk::theme::ColorScheme;
 
 #[test]
 fn the_window_has_the_app_title_and_a_minimum_size() {
@@ -20,6 +22,23 @@ fn the_window_has_the_app_title_and_a_minimum_size() {
 #[test]
 fn the_app_starts_from_the_default_data() {
     assert_eq!(App::new(Context::default()).state(), &AppState::default());
+}
+
+/// In both themes, egui's widgets draw with that theme's colour scheme, its computed lines and focus outline included.
+#[test]
+fn the_app_draws_each_theme_with_its_colour_scheme() {
+    let ctx = Context::default();
+    let _app = App::new(ctx.clone());
+    for theme in [Theme::Light, Theme::Dark] {
+        let colors = ColorScheme::of(theme);
+        let style = ctx.style_of(theme);
+        assert_eq!(style.visuals.panel_fill, colors.bar, "{theme:?}");
+        assert_eq!(style.visuals.text_color(), colors.text, "{theme:?}");
+        let line = style.visuals.window_stroke.color;
+        assert_eq!(line, colors.line(), "{theme:?}");
+        let focus = style.visuals.widgets.active.bg_stroke.color;
+        assert_eq!(focus, colors.focus(), "{theme:?}");
+    }
 }
 
 /// An action sent to the app takes effect on the next frame, which eframe's test frame runs without a window.
