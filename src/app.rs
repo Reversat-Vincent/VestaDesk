@@ -24,6 +24,7 @@ use crate::action::{self, ActionQueue, ActionSender};
 use crate::error::{AppError, Result};
 use crate::layout;
 use crate::state::AppState;
+use crate::theme;
 
 /// The app's name, shown as the window title.
 const NAME: &str = "VestaDesk";
@@ -46,9 +47,12 @@ pub struct App {
 }
 
 impl App {
-    /// Returns the app with the default data; the actions sent to it ask `ctx`, the context of its window, for a screen update.
+    /// Returns the app with the default data, for the window whose context is `ctx`.
+    ///
+    /// The app installs the colour schemes in `ctx`, and the actions sent to it ask `ctx` for a screen update.
     #[must_use]
     pub fn new(ctx: Context) -> Self {
+        theme::install(&ctx);
         let (sender, actions) = action::channel(ctx);
         Self {
             state: AppState::default(),
