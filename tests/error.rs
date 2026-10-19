@@ -63,11 +63,6 @@ fn each_failure_has_the_expected_description_and_severity() {
             "the file settings.json is too large: 2000000 bytes, over the limit of 1048576 bytes",
         ),
         (
-            AppError::FontUnavailable("Consolas".into()),
-            Severity::Recoverable,
-            "the font \"Consolas\" is unavailable",
-        ),
-        (
             AppError::UnsupportedLocale("xx".into()),
             Severity::Recoverable,
             "the language \"xx\" is not supported",

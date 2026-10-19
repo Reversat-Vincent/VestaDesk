@@ -83,10 +83,6 @@ pub enum AppError {
         limit: u64,
     },
 
-    /// A font could not be found or loaded: the app falls back to the bundled fonts.
-    #[error("the font \"{0}\" is unavailable")]
-    FontUnavailable(String),
-
     /// A language code is not one of the supported languages: the app falls back to English.
     #[error("the language \"{0}\" is not supported")]
     UnsupportedLocale(String),
@@ -114,7 +110,6 @@ impl AppError {
             | Self::DirNotSynced { .. }
             | Self::DocumentCorrupt { .. }
             | Self::DocumentTooLarge { .. }
-            | Self::FontUnavailable(_)
             | Self::UnsupportedLocale(_) => Severity::Recoverable,
         }
     }

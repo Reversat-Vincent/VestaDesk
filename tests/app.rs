@@ -1,11 +1,14 @@
 //! The main window has the app's title and a minimum size, the app starts from the default data,
-//! draws with the colour schemes and applies the actions sent to it on the next frame, and a window
-//! that cannot be created is reported as an error.
+//! draws with the bundled fonts and the colour schemes, applies the actions sent to it on the next
+//! frame, and a window that cannot be created is reported as an error.
+
+use std::collections::BTreeSet;
 
 use eframe::App as _;
-use egui::{Context, RawInput, Theme};
+use egui::{Context, FontDefinitions, FontFamily, RawInput, Theme};
 use vesta_desk::action::AppAction;
 use vesta_desk::app::{App, MIN_WINDOW_SIZE, WINDOW_SIZE, native_options};
+use vesta_desk::fonts::BUNDLED;
 use vesta_desk::router::Route;
 use vesta_desk::state::AppState;
 use vesta_desk::theme::ColorScheme;
@@ -22,6 +25,28 @@ fn the_window_has_the_app_title_and_a_minimum_size() {
 #[test]
 fn the_app_starts_from_the_default_data() {
     assert_eq!(App::new(Context::default()).state(), &AppState::default());
+}
+
+/// The app has no font but the bundled ones, which all its text tries in their order: egui's
+/// built-in fonts, with their emoji, are left out of it. egui reads every font at the start of a
+/// frame, and panics on one that it cannot read.
+#[test]
+fn the_app_draws_text_with_the_bundled_fonts_only() {
+    assert!(
+        FontDefinitions::builtin_font_names().is_empty(),
+        "egui's built-in fonts are in the app"
+    );
+    let ctx = Context::default();
+    let _app = App::new(ctx.clone());
+    ctx.run_ui(RawInput::default(), |_| {})
+        .drop_without_applying_deltas();
+    let held = ctx.fonts(|fonts| fonts.definitions().clone());
+    let bundled: Vec<String> = BUNDLED.iter().map(|font| font.name.to_owned()).collect();
+    let names: BTreeSet<&String> = held.font_data.keys().collect();
+    assert_eq!(names, bundled.iter().collect());
+    for family in [FontFamily::Proportional, FontFamily::Monospace] {
+        assert_eq!(held.families.get(&family), Some(&bundled), "{family:?}");
+    }
 }
 
 /// In both themes, egui's widgets draw with that theme's colour scheme, its computed lines and focus outline included.
