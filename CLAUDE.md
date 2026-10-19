@@ -25,6 +25,7 @@ When a change makes it wrong or incomplete, update it in the same change, withou
 ## Gotchas
 
 - egui/eframe 0.36 differs from what you remember (many APIs changed after 0.31): `App::ui` is required (there is no `update`), `egui::Panel` replaces `SidePanel`/`TopBottomPanel`, `Area::new` takes an `Id`. Read the crate source in the cargo registry instead of relying on memory.
-- Consolas is proprietary: load it from the system, never commit or embed it.
+- egui's `has_glyph` is false for every character of the font that has egui's replacement character ◻ (in the app, DejaVu Sans Mono): read the font's own character map instead, as `tests/fonts.rs` does.
+- egui's `FontTweak::scale` also scales the width that each character takes, although its doc says it does not affect the layout.
 - `nucleo-matcher` is MPL-2.0, so palette search is in-house.
 - eframe's `persistence` feature stays off (VestaDesk has its own storage). `egui_kittest` takes only `features = ["eframe"]`, because `snapshot` needs a GPU.
