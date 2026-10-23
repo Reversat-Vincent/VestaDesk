@@ -15,8 +15,7 @@ pub type Result<T> = std::result::Result<T, AppError>;
 pub enum Severity {
     /// The app cannot start or continue: it logs the error and exits with an error status.
     Fatal,
-    /// The app logs the error and keeps working with a safe fallback; once notifications exist
-    /// (VESTA-73), it also tells the user.
+    /// The app logs the error and keeps working with a safe fallback; once recoverable errors are shown as notifications (VESTA-73), it also tells the user.
     Recoverable,
 }
 

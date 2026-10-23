@@ -9,8 +9,8 @@
 //! and pushes [`action`]s; the app applies them, routes between [`pages`] via [`router`], and
 //! persists preferences through [`storage`] and [`settings`].
 //!
-//! Around the pages, [`layout`] draws the activity bar and status bar, [`toast`] shows
-//! notifications, and [`commands`] triggers actions from the command palette and keyboard
+//! Around the pages, [`layout`] draws the activity bar and status bar, [`notifications`] shows
+//! messages to the user, and [`commands`] triggers actions from the command palette and keyboard
 //! shortcuts. [`i18n`], [`fonts`] and [`theme`] provide the translations, fonts and colours.
 //! [`error`] defines the expected failures and how each is handled, [`logging`] records
 //! diagnostics, and [`platform`] holds the Windows and Linux specifics.
@@ -38,6 +38,7 @@ pub mod fonts;
 pub mod i18n;
 pub mod layout;
 pub mod logging;
+pub mod notifications;
 pub mod pages;
 pub mod platform;
 pub mod router;
@@ -45,7 +46,6 @@ pub mod settings;
 pub mod state;
 pub mod storage;
 pub mod theme;
-pub mod toast;
 
 use std::process::ExitCode;
 

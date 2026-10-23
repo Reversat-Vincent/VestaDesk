@@ -18,6 +18,7 @@
 //! 2. Apply it in [`AppState::apply`]: its `match` has no catch-all arm, so the build fails until it does.
 //! 3. Push it from the screens that trigger it, passing the queue down to them if needed, or send it from a background task.
 //! 4. Test its effect on an [`AppState`] in `tests/state.rs`.
+//! 5. Show it in the diagram above, `docs/assets/actions.svg`, with any field it adds to [`AppState`].
 //!
 //! [`App::sender`]: crate::app::App::sender
 //! [`AppState`]: crate::state::AppState
@@ -29,6 +30,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use egui::{Context, ViewportId};
 
 use crate::error::{AppError, Result};
+use crate::notifications::Notification;
 use crate::router::Route;
 
 /// A change to the app's data, applied by [`AppState::apply`](crate::state::AppState::apply).
@@ -36,6 +38,8 @@ use crate::router::Route;
 pub enum AppAction {
     /// Shows the page of the route in the central area.
     Navigate(Route),
+    /// Raises the notification, which joins the [list of notifications](crate::notifications::Notifications).
+    Notify(Notification),
 }
 
 /// Returns a sender for background tasks and the queue it sends to; each action sent asks `ctx` for a screen update.

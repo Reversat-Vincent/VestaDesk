@@ -2,6 +2,7 @@
 
 use crate::action::AppAction;
 use crate::i18n::Language;
+use crate::notifications::Notifications;
 use crate::router::Route;
 
 /// All of the app's data, in one place.
@@ -13,6 +14,8 @@ pub struct AppState {
     route: Route,
     /// The language of the app's texts.
     language: Language,
+    /// The notifications raised and not gone yet.
+    notifications: Notifications,
 }
 
 impl AppState {
@@ -49,10 +52,25 @@ impl AppState {
         self.language
     }
 
+    /// Returns the notifications raised and not gone yet: none when the app opens.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vesta_desk::state::AppState;
+    ///
+    /// assert!(AppState::default().notifications().visible().is_empty());
+    /// ```
+    #[must_use]
+    pub fn notifications(&self) -> &Notifications {
+        &self.notifications
+    }
+
     /// Applies `action` to the data; this is the only function that changes it.
     pub fn apply(&mut self, action: AppAction) {
         match action {
             AppAction::Navigate(route) => self.route = route,
+            AppAction::Notify(notification) => self.notifications.push(notification),
         }
     }
 }
