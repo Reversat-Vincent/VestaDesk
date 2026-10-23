@@ -4,7 +4,8 @@
 //! window is drawn, they push an action to the queue. Background tasks send theirs from any thread,
 //! which also asks for a screen update, so that their actions take effect even if the user does
 //! nothing. At the start of the next screen update, the app takes every action from the queue and
-//! applies it with [`AppState::apply`].
+//! applies it with [`AppState::apply`]. Before them, it applies [`AppAction::CountDown`] itself,
+//! with the time since the last screen update.
 //!
 #![doc = include_str!("../docs/assets/actions.svg")]
 //!
@@ -26,6 +27,7 @@
 
 use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::time::Duration;
 
 use egui::{Context, ViewportId};
 
@@ -40,6 +42,12 @@ pub enum AppAction {
     Navigate(Route),
     /// Raises the notification, which joins the [list of notifications](crate::notifications::Notifications).
     Notify(Notification),
+    /// Closes the notification, so that the first one waiting takes its place.
+    Dismiss(Notification),
+    /// Sets the notification under the pointer, or none: its countdown pauses until the pointer leaves it.
+    Hover(Option<Notification>),
+    /// Counts the shown notifications down by the time since the last screen update: the app applies it itself, before the actions of the queue.
+    CountDown(Duration),
 }
 
 /// Returns a sender for background tasks and the queue it sends to; each action sent asks `ctx` for a screen update.

@@ -2,7 +2,7 @@
 
 use crate::action::AppAction;
 use crate::i18n::Language;
-use crate::notifications::Notifications;
+use crate::notifications::{DEFAULT_DELAY, Notifications};
 use crate::router::Route;
 
 /// All of the app's data, in one place.
@@ -70,7 +70,10 @@ impl AppState {
     pub fn apply(&mut self, action: AppAction) {
         match action {
             AppAction::Navigate(route) => self.route = route,
-            AppAction::Notify(notification) => self.notifications.push(notification),
+            AppAction::Notify(notification) => self.notifications.push(notification, DEFAULT_DELAY),
+            AppAction::Dismiss(notification) => self.notifications.dismiss(notification),
+            AppAction::Hover(notification) => self.notifications.hover(notification),
+            AppAction::CountDown(elapsed) => self.notifications.count_down(elapsed),
         }
     }
 }

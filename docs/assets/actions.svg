@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="644" viewBox="0 0 1120 644" style="max-width: 100%; height: auto" role="img" aria-labelledby="ad-title ad-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="744" viewBox="0 0 1160 744" style="max-width: 100%; height: auto" role="img" aria-labelledby="ad-title ad-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
     <title id="ad-title">Actions in VestaDesk</title>
-    <desc id="ad-desc">The screens push actions to the ActionQueue while they draw the window, and background tasks send theirs from any thread through an ActionSender, which wakes the window. At the start of the next frame, App::logic takes every action from the queue and applies each one with AppState::apply, the only function that changes AppState. The screens then read AppState to draw the window.</desc>
+    <desc id="ad-desc">The screens push actions to the ActionQueue while they draw the window, and background tasks send theirs from any thread through an ActionSender, which wakes the window. At the start of the next frame, App::logic applies CountDown with the time since the last frame, then takes every action from the queue and applies each one with AppState::apply, the only function that changes AppState. The screens then read AppState to draw the window.</desc>
     <style>
         .ad-bg { fill: #ffffff; }
         .ad-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
@@ -42,7 +42,7 @@
             <path class="ad-read-head" d="M0 1 L10 5 L0 9 Z"/>
         </marker>
     </defs>
-    <rect class="ad-bg" width="1120" height="644"/>
+    <rect class="ad-bg" width="1160" height="744"/>
     <text class="ad-title" x="32" y="48">Actions in VestaDesk</text>
     <text class="ad-lead" x="32" y="74">Screens and background tasks never change the data themselves: they queue actions, which the next frame applies in order.</text>
     <!-- The App, on the main thread -->
@@ -70,6 +70,8 @@
     <text class="ad-name ad-code" x="496" y="394">App::logic</text>
     <text class="ad-text" x="496" y="420">at the start of every frame,</text>
     <text class="ad-text" x="496" y="439">even when minimized</text>
+    <text class="ad-text" x="496" y="465">applies <tspan class="ad-code">CountDown(elapsed)</tspan></text>
+    <text class="ad-text" x="496" y="484">before the queue's actions</text>
     <!-- AppState -->
     <rect class="ad-node" x="64" y="368" width="256" height="160" rx="10"/>
     <text class="ad-name ad-code" x="80" y="394">AppState</text>
@@ -81,19 +83,25 @@
     <text class="ad-text ad-code" x="80" y="484">notifications: Notifications</text>
     <text class="ad-text" x="80" y="510" font-weight="600">only <tspan class="ad-code">apply</tspan> changes it</text>
     <!-- Background tasks -->
-    <rect class="ad-node" x="888" y="140" width="200" height="148" rx="10"/>
+    <rect class="ad-node" x="888" y="140" width="240" height="148" rx="10"/>
     <text class="ad-name" x="904" y="166">Background tasks</text>
     <text class="ad-note" x="904" y="188">any thread</text>
     <text class="ad-text" x="904" y="214">use an <tspan class="ad-code">ActionSender</tspan></text>
     <text class="ad-note" x="904" y="233">from <tspan class="ad-code">App::sender()</tspan></text>
     <!-- AppAction -->
-    <rect class="ad-type" x="888" y="368" width="200" height="160" rx="10"/>
+    <rect class="ad-type" x="888" y="368" width="240" height="292" rx="10"/>
     <text class="ad-name ad-code" x="904" y="394">AppAction</text>
     <text class="ad-note" x="904" y="414">a change to the app's data</text>
     <text class="ad-call ad-code" x="904" y="442">Navigate(Route)</text>
     <text class="ad-text" x="904" y="461">shows the route's page</text>
     <text class="ad-call ad-code" x="904" y="487">Notify(Notification)</text>
     <text class="ad-text" x="904" y="506">raises a notification</text>
+    <text class="ad-call ad-code" x="904" y="532">Dismiss(Notification)</text>
+    <text class="ad-text" x="904" y="551">closes a notification</text>
+    <text class="ad-call ad-code" x="904" y="577">Hover(Option&lt;Notification&gt;)</text>
+    <text class="ad-text" x="904" y="596">pauses its countdown</text>
+    <text class="ad-call ad-code" x="904" y="622">CountDown(Duration)</text>
+    <text class="ad-text" x="904" y="641">counts the notifications down</text>
     <!-- Screens push to the queue -->
     <path class="ad-flow" d="M320 220 H495" marker-end="url(#ad-arrow-flow)"/>
     <text class="ad-call ad-code" x="400" y="211" text-anchor="middle">push(action)</text>
@@ -113,6 +121,6 @@
     <path class="ad-read" d="M192 368 V289" marker-end="url(#ad-arrow-read)"/>
     <text class="ad-note" x="204" y="322">reads</text>
     <text class="ad-note ad-code" x="204" y="340">&amp;AppState</text>
-    <text class="ad-foot" x="32" y="596">A frame is one screen update: eframe calls <tspan class="ad-code">App::logic</tspan>, then <tspan class="ad-code">App::ui</tspan>.</text>
-    <text class="ad-foot" x="32" y="618">Example: clicking Settings in the activity bar pushes <tspan class="ad-code">Navigate(Settings)</tspan>; on the next frame, <tspan class="ad-code">App::logic</tspan> applies it and the screens draw the Settings page.</text>
+    <text class="ad-foot" x="32" y="696">A frame is one screen update: eframe calls <tspan class="ad-code">App::logic</tspan>, then <tspan class="ad-code">App::ui</tspan>.</text>
+    <text class="ad-foot" x="32" y="718">Example: clicking Settings in the activity bar pushes <tspan class="ad-code">Navigate(Settings)</tspan>; on the next frame, <tspan class="ad-code">App::logic</tspan> applies it and the screens draw the Settings page.</text>
 </svg>

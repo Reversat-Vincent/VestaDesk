@@ -1,17 +1,33 @@
 //! The main window has the app's title and a minimum size, the app starts from the default data,
 //! draws with the bundled fonts and the colour schemes, applies the actions sent to it on the next
-//! frame, and a window that cannot be created is reported as an error.
+//! frame and asks for a frame when the next notification goes, and a window that cannot be created
+//! is reported as an error.
 
 use std::collections::BTreeSet;
+use std::time::Duration;
 
 use eframe::App as _;
-use egui::{Context, FontDefinitions, FontFamily, RawInput, Theme};
+use egui::{Context, FontDefinitions, FontFamily, RawInput, Theme, ViewportId};
 use vesta_desk::action::AppAction;
 use vesta_desk::app::{App, MIN_WINDOW_SIZE, WINDOW_SIZE, native_options};
 use vesta_desk::fonts::BUNDLED;
+use vesta_desk::i18n::Text;
+use vesta_desk::notifications::{DEFAULT_DELAY, Level, Notification};
 use vesta_desk::router::Route;
 use vesta_desk::state::AppState;
 use vesta_desk::theme::ColorScheme;
+
+/// Runs a frame of `app` without a window, as eframe's test frame allows, and returns the delay after which it asks for the next one.
+fn run_frame(ctx: &Context, app: &mut App) -> Duration {
+    let mut frame = eframe::Frame::_new_kittest();
+    let output = ctx.run_ui(RawInput::default(), |ui| {
+        app.logic(ui.ctx(), &mut frame);
+        app.ui(ui, &mut frame);
+    });
+    let delay = output.viewport_output[&ViewportId::ROOT].repaint_delay;
+    output.drop_without_applying_deltas();
+    delay
+}
 
 #[test]
 fn the_window_has_the_app_title_and_a_minimum_size() {
@@ -66,7 +82,7 @@ fn the_app_draws_each_theme_with_its_colour_scheme() {
     }
 }
 
-/// An action sent to the app takes effect on the next frame, which eframe's test frame runs without a window.
+/// An action sent to the app takes effect on the next frame.
 #[test]
 fn the_app_applies_an_action_sent_to_it_on_the_next_frame() {
     let ctx = Context::default();
@@ -74,13 +90,31 @@ fn the_app_applies_an_action_sent_to_it_on_the_next_frame() {
     app.sender()
         .send(AppAction::Navigate(Route::About))
         .unwrap();
-    let mut frame = eframe::Frame::_new_kittest();
-    ctx.run_ui(RawInput::default(), |ui| {
-        app.logic(ui.ctx(), &mut frame);
-        app.ui(ui, &mut frame);
-    })
-    .drop_without_applying_deltas();
+    run_frame(&ctx, &mut app);
     assert_eq!(app.state().route(), Route::About);
+}
+
+/// egui draws no frame without input, so the app asks for one when a notification's time is up, for it to go even if the user does nothing.
+#[test]
+fn the_app_asks_for_a_frame_when_the_next_notification_goes() {
+    let ctx = Context::default();
+    let mut app = App::new(ctx.clone());
+    let saved = Notification {
+        level: Level::Success,
+        text: Text::Settings,
+        stays_until_closed: false,
+    };
+    app.sender().send(AppAction::Notify(saved)).unwrap();
+    // egui asks for a few frames at once as it starts and when an action is sent; the next frame asked for is the app's.
+    let delay = (0..5)
+        .map(|_| run_frame(&ctx, &mut app))
+        .find(|delay| !delay.is_zero());
+    // egui wakes the app slightly early, so as not to be late.
+    let earliest = DEFAULT_DELAY.saturating_sub(Duration::from_secs(1));
+    assert!(
+        delay.is_some_and(|delay| earliest < delay && delay <= DEFAULT_DELAY),
+        "{delay:?}"
+    );
 }
 
 /// Without a display the window cannot be created: the app logs the error and exits with a failure status instead of crashing.

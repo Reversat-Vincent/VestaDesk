@@ -5,11 +5,12 @@
 //! [`App`] keeps all of the app's data in one [`AppState`], which only [`AppState::apply`] changes.
 //! On each frame, eframe calls two methods of [`App`]:
 //!
-//! 1. [`logic`](eframe::App::logic) applies the [actions](crate::action) waiting in the [`ActionQueue`], in order.
+//! 1. [`logic`](eframe::App::logic) counts the notifications down by the time since the last frame, then applies the [actions](crate::action) waiting in the [`ActionQueue`], in order.
 //! 2. [`ui`](eframe::App::ui) lets the screens read the data, draw the window and push the user's actions to the queue.
 //! 3. If they pushed any, `ui` asks for another frame, whose `logic` applies them.
 //!
 //! eframe calls `logic` even while the window is minimized, so the actions of background tasks still take effect.
+//! While shown notifications count down, `logic` also asks for a frame when the next one's time is up, so that it goes even if the user does nothing.
 //!
 //! # Rendering
 //!
@@ -18,9 +19,11 @@
 //! frame in 120 ms, against 13.8 MB and 630 ms for wgpu.
 //! VestaDesk therefore needs OpenGL 2.0 or later.
 
+use std::time::Instant;
+
 use egui::{Context, Vec2};
 
-use crate::action::{self, ActionQueue, ActionSender};
+use crate::action::{self, ActionQueue, ActionSender, AppAction};
 use crate::error::{AppError, Result};
 use crate::fonts;
 use crate::layout;
@@ -45,6 +48,8 @@ pub struct App {
     actions: ActionQueue,
     /// The sender that [`App::sender`] gives to background tasks.
     sender: ActionSender,
+    /// When the last frame started, from which the next one counts the notifications down.
+    last_frame: Instant,
 }
 
 impl App {
@@ -60,6 +65,7 @@ impl App {
             state: AppState::default(),
             actions,
             sender,
+            last_frame: Instant::now(),
         }
     }
 
@@ -100,9 +106,16 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let now = Instant::now();
+        let elapsed = now.saturating_duration_since(self.last_frame);
+        self.last_frame = now;
+        self.state.apply(AppAction::CountDown(elapsed));
         for action in self.actions.take() {
             self.state.apply(action);
+        }
+        if let Some(time_left) = self.state.notifications().next_expiry() {
+            ctx.request_repaint_after(time_left);
         }
     }
 
