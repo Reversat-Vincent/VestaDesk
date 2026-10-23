@@ -81,15 +81,15 @@ impl Notification {
     }
 }
 
-/// A notification in the [list](Notifications), with the number of times it was raised and the time it has left.
+/// A notification in the [list](Notifications), with the number of times it was raised and its countdown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Entry {
     /// The notification.
     notification: Notification,
     /// How many times it was raised.
     count: u64,
-    /// How long it stays, counted down only while it is shown.
-    time_left: Duration,
+    /// Its countdown, which runs only while it is shown, or `None` if it stays until closed.
+    countdown: Option<Countdown>,
 }
 
 impl Entry {
@@ -138,10 +138,52 @@ impl Entry {
         self.count
     }
 
-    /// Returns whether the notification counts down while it is shown: not while it is `hovered`, nor if it stays until closed.
-    fn counts_down(&self, hovered: Option<Notification>) -> bool {
-        !self.notification.stays_until_closed && hovered != Some(self.notification)
+    /// Returns how much of its delay the notification has left, from 1 down to 0 when it goes, or `None` if it stays until closed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    ///
+    /// use vesta_desk::i18n::Text;
+    /// use vesta_desk::notifications::{Level, Notification, Notifications};
+    ///
+    /// let saved = Notification {
+    ///     level: Level::Success,
+    ///     text: Text::Settings,
+    ///     stays_until_closed: false,
+    /// };
+    /// let mut notifications = Notifications::default();
+    /// notifications.push(saved, Duration::from_secs(4));
+    /// notifications.count_down(Duration::from_secs(1));
+    /// assert_eq!(notifications.visible()[0].delay_left(), Some(0.75));
+    /// ```
+    #[must_use]
+    pub fn delay_left(&self) -> Option<f32> {
+        self.countdown.map(|countdown| {
+            // Nothing is left of a zero delay, and dividing by it would give no number.
+            if countdown.delay.is_zero() {
+                0.0
+            } else {
+                countdown.left.div_duration_f32(countdown.delay)
+            }
+        })
     }
+
+    /// Returns whether the notification's time is up: never if it stays until closed.
+    fn time_is_up(&self) -> bool {
+        self.countdown
+            .is_some_and(|countdown| countdown.left.is_zero())
+    }
+}
+
+/// The delay after which a notification goes, and how much of it is left.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Countdown {
+    /// How long the notification stays once shown.
+    delay: Duration,
+    /// How much of the delay is left.
+    left: Duration,
 }
 
 /// The notifications raised and not gone yet, in the order they were added: the first [`MAX_VISIBLE`] are shown, and the others wait their turn.
@@ -156,18 +198,21 @@ pub struct Notifications {
 impl Notifications {
     /// Adds `notification` after the others, to stay for `delay` once shown; if an identical one is in the list, that one counts it and restarts its countdown instead.
     pub fn push(&mut self, notification: Notification, delay: Duration) {
+        // A notification that stays until closed has no countdown.
+        let countdown =
+            (!notification.stays_until_closed).then_some(Countdown { delay, left: delay });
         if let Some(entry) = self
             .list
             .iter_mut()
             .find(|entry| entry.notification == notification)
         {
             entry.count += 1;
-            entry.time_left = delay;
+            entry.countdown = countdown;
         } else {
             self.list.push(Entry {
                 notification,
                 count: 1,
-                time_left: delay,
+                countdown,
             });
         }
     }
@@ -186,12 +231,13 @@ impl Notifications {
     pub fn count_down(&mut self, elapsed: Duration) {
         let hovered = self.hovered;
         for entry in self.list.iter_mut().take(MAX_VISIBLE) {
-            if entry.counts_down(hovered) {
-                entry.time_left = entry.time_left.saturating_sub(elapsed);
+            if hovered != Some(entry.notification)
+                && let Some(countdown) = &mut entry.countdown
+            {
+                countdown.left = countdown.left.saturating_sub(elapsed);
             }
         }
-        self.list
-            .retain(|entry| entry.notification.stays_until_closed || !entry.time_left.is_zero());
+        self.list.retain(|entry| !entry.time_is_up());
     }
 
     /// Returns the notification under the pointer, if any.
@@ -240,8 +286,9 @@ impl Notifications {
     pub fn next_expiry(&self) -> Option<Duration> {
         self.visible()
             .iter()
-            .filter(|entry| entry.counts_down(self.hovered))
-            .map(|entry| entry.time_left)
+            .filter(|entry| self.hovered != Some(entry.notification))
+            .filter_map(|entry| entry.countdown)
+            .map(|countdown| countdown.left)
             .min()
     }
 

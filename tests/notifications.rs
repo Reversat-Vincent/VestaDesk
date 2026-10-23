@@ -1,4 +1,4 @@
-//! At most five notifications are shown while the others wait in order, a shown one goes after its delay unless the pointer is over it or it stays until closed, closing one makes room, an identical one is counted and restarts the countdown, and each is shown in the language of the moment.
+//! At most five notifications are shown while the others wait in order, a shown one tells how much of its delay is left and goes after it unless the pointer is over it or it stays until closed, closing one makes room, an identical one is counted and restarts the countdown, and each is shown in the language of the moment.
 
 use std::time::Duration;
 
@@ -61,6 +61,15 @@ fn list_of(raised: &[Notification]) -> Notifications {
 /// Returns the notifications of `entries`.
 fn notifications_in(entries: &[Entry]) -> Vec<Notification> {
     entries.iter().map(Entry::notification).collect()
+}
+
+/// Returns how much of their delay the notifications shown in `notifications` have left.
+fn delay_left(notifications: &Notifications) -> Vec<Option<f32>> {
+    notifications
+        .visible()
+        .iter()
+        .map(Entry::delay_left)
+        .collect()
 }
 
 #[test]
@@ -141,6 +150,24 @@ fn an_identical_notification_is_counted_and_restarts_the_countdown() {
     assert_eq!(notifications_in(notifications.visible()), [SAVED]);
     notifications.count_down(MILLISECOND);
     assert!(notifications.visible().is_empty());
+}
+
+#[test]
+fn a_shown_notification_tells_how_much_of_its_delay_is_left() {
+    let mut notifications = list_of(&[SAVED, FAILED]);
+    assert_eq!(delay_left(&notifications), [Some(1.0), None]);
+    notifications.count_down(DELAY / 2);
+    // A notification that stays until closed has no time left to show.
+    assert_eq!(delay_left(&notifications), [Some(0.5), None]);
+}
+
+#[test]
+fn the_delay_left_stops_changing_while_the_pointer_is_over_the_notification() {
+    let mut notifications = list_of(&[SAVED]);
+    notifications.count_down(DELAY / 2);
+    notifications.hover(Some(SAVED));
+    notifications.count_down(DELAY / 4);
+    assert_eq!(delay_left(&notifications), [Some(0.5)]);
 }
 
 /// The app wakes up at the next expiry, so that notifications go even if the user does nothing.
