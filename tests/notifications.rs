@@ -1,8 +1,12 @@
-//! At most five notifications are shown while the others wait in order, a shown one tells how much of its delay is left and goes after it unless the pointer is over it or it stays until closed, closing one makes room, an identical one is counted and restarts the countdown, and each is shown in the language of the moment.
+//! At most five notifications are shown while the others wait in order, and only a shown one can
+//! be under the pointer. A shown one tells how much of its delay is left and goes once it has
+//! passed, unless the pointer is over it or it stays until closed, and a waiting one never goes
+//! before it is shown. Closing one makes room and leaves none under the pointer, and an identical
+//! one is counted and restarts the countdown, even when raised as the time of the first runs out.
 
 use std::time::Duration;
 
-use vesta_desk::i18n::{Language, Text};
+use vesta_desk::i18n::Text;
 use vesta_desk::notifications::{Entry, Level, Notification, Notifications};
 
 /// The delay that the tests give their notifications.
@@ -58,6 +62,12 @@ fn list_of(raised: &[Notification]) -> Notifications {
     notifications
 }
 
+/// Runs a screen update of `notifications` after `elapsed`, with no action in its queue: counts them down, then removes those whose time is up.
+fn update(notifications: &mut Notifications, elapsed: Duration) {
+    notifications.count_down(elapsed);
+    notifications.expire();
+}
+
 /// Returns the notifications of `entries`.
 fn notifications_in(entries: &[Entry]) -> Vec<Notification> {
     entries.iter().map(Entry::notification).collect()
@@ -84,9 +94,9 @@ fn at_most_five_notifications_are_shown_and_the_others_wait_in_order() {
 #[test]
 fn a_shown_notification_goes_once_its_delay_has_passed() {
     let mut notifications = list_of(&[SAVED]);
-    notifications.count_down(DELAY.saturating_sub(MILLISECOND));
+    update(&mut notifications, DELAY.saturating_sub(MILLISECOND));
     assert_eq!(notifications_in(notifications.visible()), [SAVED]);
-    notifications.count_down(MILLISECOND);
+    update(&mut notifications, MILLISECOND);
     assert!(notifications.visible().is_empty());
 }
 
@@ -94,29 +104,56 @@ fn a_shown_notification_goes_once_its_delay_has_passed() {
 fn a_waiting_notification_starts_counting_down_once_shown() {
     let raised = eight_notifications();
     let mut notifications = list_of(&raised);
-    notifications.count_down(DELAY);
+    update(&mut notifications, DELAY);
     // The five shown went, and the three waiting took their places with their whole delay left.
     assert_eq!(notifications_in(notifications.visible()), &raised[5..]);
-    notifications.count_down(DELAY.saturating_sub(MILLISECOND));
+    update(&mut notifications, DELAY.saturating_sub(MILLISECOND));
     assert_eq!(notifications_in(notifications.visible()), &raised[5..]);
-    notifications.count_down(MILLISECOND);
+    update(&mut notifications, MILLISECOND);
     assert!(notifications.visible().is_empty());
+}
+
+/// Even with no delay, a waiting notification stays until it is shown.
+#[test]
+fn a_waiting_notification_goes_only_once_shown() {
+    let raised = eight_notifications();
+    let mut notifications = list_of(&raised[..5]);
+    notifications.push(raised[5], Duration::ZERO);
+    update(&mut notifications, SECOND);
+    assert_eq!(notifications_in(notifications.waiting()), [raised[5]]);
+    // Shown once another one is closed, it goes at the next screen update.
+    notifications.dismiss(raised[0]);
+    update(&mut notifications, Duration::ZERO);
+    assert_eq!(notifications_in(notifications.visible()), &raised[1..5]);
 }
 
 #[test]
 fn the_countdown_pauses_while_the_pointer_is_over_the_notification() {
     let mut notifications = list_of(&[SAVED, OTHER]);
-    notifications.count_down(SECOND);
+    update(&mut notifications, SECOND);
     notifications.hover(Some(SAVED));
-    notifications.count_down(DELAY);
+    update(&mut notifications, DELAY);
     // The other one went, while the one under the pointer stayed.
     assert_eq!(notifications_in(notifications.visible()), [SAVED]);
     // Once the pointer leaves it, its countdown goes on from where it paused.
     notifications.hover(None);
-    notifications.count_down(DELAY.saturating_sub(SECOND + MILLISECOND));
+    update(
+        &mut notifications,
+        DELAY.saturating_sub(SECOND + MILLISECOND),
+    );
     assert_eq!(notifications_in(notifications.visible()), [SAVED]);
-    notifications.count_down(MILLISECOND);
+    update(&mut notifications, MILLISECOND);
     assert!(notifications.visible().is_empty());
+}
+
+#[test]
+fn only_a_shown_notification_can_be_under_the_pointer() {
+    let raised = eight_notifications();
+    let mut notifications = list_of(&raised);
+    notifications.hover(Some(raised[5]));
+    assert_eq!(notifications.hovered(), None);
+    notifications.hover(Some(raised[4]));
+    assert_eq!(notifications.hovered(), Some(raised[4]));
 }
 
 #[test]
@@ -128,10 +165,22 @@ fn closing_a_notification_shows_the_first_one_waiting_in_its_place() {
     assert_eq!(notifications_in(notifications.visible()), shown);
 }
 
+/// The pointer is over a notification when the user closes it, and an identical one raised later must still count down.
+#[test]
+fn closing_the_notification_under_the_pointer_leaves_none_under_it() {
+    let mut notifications = list_of(&[SAVED]);
+    notifications.hover(Some(SAVED));
+    notifications.dismiss(SAVED);
+    assert_eq!(notifications.hovered(), None);
+    notifications.push(SAVED, DELAY);
+    update(&mut notifications, DELAY);
+    assert!(notifications.visible().is_empty());
+}
+
 #[test]
 fn a_notification_that_stays_until_closed_goes_only_when_closed() {
     let mut notifications = list_of(&[FAILED]);
-    notifications.count_down(Duration::MAX);
+    update(&mut notifications, Duration::MAX);
     assert_eq!(notifications_in(notifications.visible()), [FAILED]);
     notifications.dismiss(FAILED);
     assert!(notifications.visible().is_empty());
@@ -140,16 +189,29 @@ fn a_notification_that_stays_until_closed_goes_only_when_closed() {
 #[test]
 fn an_identical_notification_is_counted_and_restarts_the_countdown() {
     let mut notifications = list_of(&[SAVED]);
-    notifications.count_down(SECOND);
+    update(&mut notifications, SECOND);
     notifications.push(SAVED, DELAY);
     // One notification is shown, raised twice.
     let counts: Vec<u64> = notifications.visible().iter().map(Entry::count).collect();
     assert_eq!(counts, [2]);
     // Its countdown restarted, so its whole delay is left.
-    notifications.count_down(DELAY.saturating_sub(MILLISECOND));
+    update(&mut notifications, DELAY.saturating_sub(MILLISECOND));
     assert_eq!(notifications_in(notifications.visible()), [SAVED]);
-    notifications.count_down(MILLISECOND);
+    update(&mut notifications, MILLISECOND);
     assert!(notifications.visible().is_empty());
+}
+
+/// The screens raised the repeat while the notification was still shown, during its last screen update.
+#[test]
+fn an_identical_notification_raised_as_the_time_runs_out_still_joins_it() {
+    let mut notifications = list_of(&[SAVED]);
+    // A screen update applies the actions of its queue between the countdown and the removal.
+    notifications.count_down(DELAY);
+    notifications.push(SAVED, DELAY);
+    notifications.expire();
+    let counts: Vec<u64> = notifications.visible().iter().map(Entry::count).collect();
+    assert_eq!(counts, [2]);
+    assert_eq!(delay_left(&notifications), [Some(1.0)]);
 }
 
 #[test]
@@ -190,9 +252,18 @@ fn the_next_expiry_is_when_the_next_shown_notification_goes() {
     assert_eq!(notifications.next_expiry(), None);
 }
 
-/// A notification keeps its text rather than its words, so a visible one switches to the new language as soon as the user changes it.
+/// Only the shown notifications count down, so the app does not wake up for a waiting one.
 #[test]
-fn a_notification_is_shown_in_the_language_of_the_moment() {
-    assert_eq!(SAVED.message(Language::English), "Settings");
-    assert_eq!(SAVED.message(Language::Japanese), "設定");
+fn a_waiting_notification_is_not_the_next_to_go() {
+    // Five shown notifications that stay until closed, so that the one raised after them waits.
+    let staying: Vec<Notification> = eight_notifications()[..5]
+        .iter()
+        .map(|&notification| Notification {
+            stays_until_closed: true,
+            ..notification
+        })
+        .collect();
+    let mut notifications = list_of(&staying);
+    notifications.push(SAVED, DELAY);
+    assert_eq!(notifications.next_expiry(), None);
 }

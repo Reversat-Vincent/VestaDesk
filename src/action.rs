@@ -4,8 +4,7 @@
 //! window is drawn, they push an action to the queue. Background tasks send theirs from any thread,
 //! which also asks for a screen update, so that their actions take effect even if the user does
 //! nothing. At the start of the next screen update, the app takes every action from the queue and
-//! applies it with [`AppState::apply`]. Before them, it applies [`AppAction::CountDown`] itself,
-//! with the time since the last screen update.
+//! applies them in order with [`AppState::update`].
 //!
 #![doc = include_str!("../docs/assets/actions.svg")]
 //!
@@ -24,6 +23,7 @@
 //! [`App::sender`]: crate::app::App::sender
 //! [`AppState`]: crate::state::AppState
 //! [`AppState::apply`]: crate::state::AppState::apply
+//! [`AppState::update`]: crate::state::AppState::update
 
 use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -44,10 +44,12 @@ pub enum AppAction {
     Notify(Notification),
     /// Closes the notification, so that the first one waiting takes its place.
     Dismiss(Notification),
-    /// Sets the notification under the pointer, or none: its countdown pauses until the pointer leaves it.
+    /// Sets the notification under the pointer, or none: its countdown pauses until the pointer leaves it, and screens push it whenever the notification under the pointer differs from [`Notifications::hovered`](crate::notifications::Notifications::hovered).
     Hover(Option<Notification>),
-    /// Counts the shown notifications down by the time since the last screen update: the app applies it itself, before the actions of the queue.
+    /// Counts the shown notifications down by the given time, as part of [`AppState::update`](crate::state::AppState::update).
     CountDown(Duration),
+    /// Removes the shown notifications whose time is up, as part of [`AppState::update`](crate::state::AppState::update).
+    Expire,
 }
 
 /// Returns a sender for background tasks and the queue it sends to; each action sent asks `ctx` for a screen update.

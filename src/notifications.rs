@@ -5,6 +5,8 @@
 //! adds it to [`AppState::notifications`]. The first [`MAX_VISIBLE`] notifications added are shown,
 //! and the others wait their turn, in the order they were added.
 //!
+#![doc = include_str!("../docs/assets/notifications.svg")]
+//!
 //! A notification keeps its [`Text`], not its words in one language: it is translated each time it
 //! is shown, so a visible notification switches to the new language as soon as the user changes it.
 //!
@@ -13,15 +15,26 @@
 //! # How long a notification stays
 //!
 //! A shown notification goes once its delay, [`DEFAULT_DELAY`], has passed; a waiting one starts
-//! counting down once it is shown. The countdown pauses while the pointer is over the notification,
-//! and the user can close it at any time. A notification identical to one already in the list is
-//! not added again: the one in the list counts it and restarts its countdown, so each notification
-//! is in the list once at most.
+//! counting down once it is shown. The countdown pauses while the pointer is over the notification
+//! or the window does not have focus, so that a notification raised while the user is in another
+//! window waits for them, and the user can close it at any time. A notification identical to one
+//! already in the list is not added again: the one in the list counts it and restarts its
+//! countdown, so each notification is in the list once at most.
+//!
+//! A screen update, [`AppState::update`], counts the notifications down before applying the actions
+//! of the queue, and removes those whose time is up after them, so that a repeat raised during a
+//! notification's last screen update still joins it.
+//!
+//! Notifications also wait while the screen is locked, since locking takes focus from the window,
+//! and while the computer sleeps. Windows counts the time asleep, unlike Linux, so a screen update
+//! that comes more than [`LATE_UPDATE`] after the next notification's time is up counts no time:
+//! the computer was asleep, or the app stalled.
 //!
 //! The delay is the same for every level, errors included. The code that raises a notification that must not be missed, such as a failed save, makes it stay until the user closes it.
 //!
 //! [`AppAction::Notify`]: crate::action::AppAction::Notify
 //! [`AppState::notifications`]: crate::state::AppState::notifications
+//! [`AppState::update`]: crate::state::AppState::update
 
 use std::time::Duration;
 
@@ -32,6 +45,9 @@ pub const MAX_VISIBLE: usize = 5;
 
 /// How long a shown notification stays by default: 3 s.
 pub const DEFAULT_DELAY: Duration = Duration::from_secs(3);
+
+/// How long after the next notification's time is up a screen update can come and still count the time since the last one: 1 s.
+pub const LATE_UPDATE: Duration = Duration::from_secs(1);
 
 enum_with_all! {
     /// How important a notification is.
@@ -170,10 +186,10 @@ impl Entry {
         })
     }
 
-    /// Returns whether the notification's time is up: never if it stays until closed.
-    fn time_is_up(&self) -> bool {
+    /// Returns its countdown if it runs while the notification is shown: none if it stays until closed or is `hovered`, the notification under the pointer.
+    fn running_countdown(&self, hovered: Option<Notification>) -> Option<Countdown> {
         self.countdown
-            .is_some_and(|countdown| countdown.left.is_zero())
+            .filter(|_| hovered != Some(self.notification))
     }
 }
 
@@ -191,7 +207,7 @@ struct Countdown {
 pub struct Notifications {
     /// Every notification, in the order it was added.
     list: Vec<Entry>,
-    /// The notification under the pointer, whose countdown is paused.
+    /// The notification under the pointer, always a shown one, whose countdown is paused.
     hovered: Option<Notification>,
 }
 
@@ -217,27 +233,45 @@ impl Notifications {
         }
     }
 
-    /// Removes `notification`, so that the first one waiting takes its place.
+    /// Removes `notification`, which is then no longer under the pointer, so that the first one waiting takes its place.
     pub fn dismiss(&mut self, notification: Notification) {
         self.list.retain(|entry| entry.notification != notification);
+        if self.hovered == Some(notification) {
+            self.hovered = None;
+        }
     }
 
-    /// Sets the notification under the pointer, or none: its countdown pauses until the pointer leaves it.
+    /// Sets the notification under the pointer, or none if it is not shown: its countdown pauses until the pointer leaves it.
     pub fn hover(&mut self, notification: Option<Notification>) {
-        self.hovered = notification;
+        self.hovered = notification.filter(|&hovered| {
+            self.visible()
+                .iter()
+                .any(|entry| entry.notification == hovered)
+        });
     }
 
-    /// Counts the shown notifications down by `elapsed`: those whose time is up go, and the first ones waiting take their places.
+    /// Counts the shown notifications down by `elapsed`, except the one under the pointer; those whose time is up go at the next [`expire`](Self::expire).
     pub fn count_down(&mut self, elapsed: Duration) {
-        let hovered = self.hovered;
         for entry in self.list.iter_mut().take(MAX_VISIBLE) {
-            if hovered != Some(entry.notification)
-                && let Some(countdown) = &mut entry.countdown
-            {
-                countdown.left = countdown.left.saturating_sub(elapsed);
+            if let Some(countdown) = entry.running_countdown(self.hovered) {
+                entry.countdown = Some(Countdown {
+                    left: countdown.left.saturating_sub(elapsed),
+                    ..countdown
+                });
             }
         }
-        self.list.retain(|entry| !entry.time_is_up());
+    }
+
+    /// Removes the shown notifications whose time is up, except the one under the pointer, so that the first ones waiting take their places.
+    pub fn expire(&mut self) {
+        let shown = self.visible().len();
+        self.list
+            .extract_if(..shown, |entry| {
+                entry
+                    .running_countdown(self.hovered)
+                    .is_some_and(|countdown| countdown.left.is_zero())
+            })
+            .for_each(drop);
     }
 
     /// Returns the notification under the pointer, if any.
@@ -246,7 +280,7 @@ impl Notifications {
     ///
     /// ```
     /// use vesta_desk::i18n::Text;
-    /// use vesta_desk::notifications::{Level, Notification, Notifications};
+    /// use vesta_desk::notifications::{DEFAULT_DELAY, Level, Notification, Notifications};
     ///
     /// let saved = Notification {
     ///     level: Level::Success,
@@ -254,6 +288,7 @@ impl Notifications {
     ///     stays_until_closed: false,
     /// };
     /// let mut notifications = Notifications::default();
+    /// notifications.push(saved, DEFAULT_DELAY);
     /// notifications.hover(Some(saved));
     /// assert_eq!(notifications.hovered(), Some(saved));
     /// ```
@@ -286,8 +321,7 @@ impl Notifications {
     pub fn next_expiry(&self) -> Option<Duration> {
         self.visible()
             .iter()
-            .filter(|entry| self.hovered != Some(entry.notification))
-            .filter_map(|entry| entry.countdown)
+            .filter_map(|entry| entry.running_countdown(self.hovered))
             .map(|countdown| countdown.left)
             .min()
     }

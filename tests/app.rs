@@ -1,7 +1,8 @@
 //! The main window has the app's title and a minimum size, the app starts from the default data,
 //! draws with the bundled fonts and the colour schemes, applies the actions sent to it on the next
-//! frame and asks for a frame when the next notification goes, and a window that cannot be created
-//! is reported as an error.
+//! frame, asks for a frame when the next notification goes and for none while none counts down,
+//! counts the notifications down only while the window has focus, and a window that cannot be
+//! created is reported as an error.
 
 use std::collections::BTreeSet;
 use std::time::Duration;
@@ -17,16 +18,45 @@ use vesta_desk::router::Route;
 use vesta_desk::state::AppState;
 use vesta_desk::theme::ColorScheme;
 
-/// Runs a frame of `app` without a window, as eframe's test frame allows, and returns the delay after which it asks for the next one.
-fn run_frame(ctx: &Context, app: &mut App) -> Duration {
+/// A notification that goes after its delay.
+const SAVED: Notification = Notification {
+    level: Level::Success,
+    text: Text::Settings,
+    stays_until_closed: false,
+};
+
+/// A notification that stays until the user closes it.
+const FAILED: Notification = Notification {
+    level: Level::Error,
+    text: Text::Settings,
+    stays_until_closed: true,
+};
+
+/// Returns the input of a frame while the window does not have focus, which it has in the default input.
+fn without_focus() -> RawInput {
+    RawInput {
+        focused: false,
+        ..RawInput::default()
+    }
+}
+
+/// Runs a frame of `app` with `input`, without a window as eframe's test frame allows, and returns the delay after which it asks for the next one.
+fn run_frame(ctx: &Context, app: &mut App, input: RawInput) -> Duration {
     let mut frame = eframe::Frame::_new_kittest();
-    let output = ctx.run_ui(RawInput::default(), |ui| {
+    let output = ctx.run_ui(input, |ui| {
         app.logic(ui.ctx(), &mut frame);
         app.ui(ui, &mut frame);
     });
     let delay = output.viewport_output[&ViewportId::ROOT].repaint_delay;
     output.drop_without_applying_deltas();
     delay
+}
+
+/// Runs frames of `app` with the inputs of `input` until it asks for one after a delay, and returns that delay: egui asks for a few frames at once as it starts and when an action is sent.
+fn delay_asked(ctx: &Context, app: &mut App, input: impl Fn() -> RawInput) -> Option<Duration> {
+    (0..5)
+        .map(|_| run_frame(ctx, app, input()))
+        .find(|delay| !delay.is_zero())
 }
 
 #[test]
@@ -90,7 +120,7 @@ fn the_app_applies_an_action_sent_to_it_on_the_next_frame() {
     app.sender()
         .send(AppAction::Navigate(Route::About))
         .unwrap();
-    run_frame(&ctx, &mut app);
+    run_frame(&ctx, &mut app, RawInput::default());
     assert_eq!(app.state().route(), Route::About);
 }
 
@@ -99,22 +129,57 @@ fn the_app_applies_an_action_sent_to_it_on_the_next_frame() {
 fn the_app_asks_for_a_frame_when_the_next_notification_goes() {
     let ctx = Context::default();
     let mut app = App::new(ctx.clone());
-    let saved = Notification {
-        level: Level::Success,
-        text: Text::Settings,
-        stays_until_closed: false,
+    app.sender().send(AppAction::Notify(SAVED)).unwrap();
+    // With frames a second long, a wake-up a frame early would come a second early.
+    let slow_frames = || RawInput {
+        predicted_dt: 1.0,
+        ..RawInput::default()
     };
-    app.sender().send(AppAction::Notify(saved)).unwrap();
-    // egui asks for a few frames at once as it starts and when an action is sent; the next frame asked for is the app's.
-    let delay = (0..5)
-        .map(|_| run_frame(&ctx, &mut app))
-        .find(|delay| !delay.is_zero());
-    // egui wakes the app slightly early, so as not to be late.
+    let delay = delay_asked(&ctx, &mut app, slow_frames);
+    // The notification has counted down since the frame that showed it.
     let earliest = DEFAULT_DELAY.saturating_sub(Duration::from_secs(1));
     assert!(
-        delay.is_some_and(|delay| earliest < delay && delay <= DEFAULT_DELAY),
+        delay.is_some_and(|delay| earliest < delay && delay < DEFAULT_DELAY),
         "{delay:?}"
     );
+}
+
+/// With no notification counting down, the app asks for no frame, so an idle window is not redrawn.
+#[test]
+fn the_app_asks_for_no_frame_while_no_notification_counts_down() {
+    let ctx = Context::default();
+    let mut app = App::new(ctx.clone());
+    app.sender().send(AppAction::Notify(FAILED)).unwrap();
+    let delay = delay_asked(&ctx, &mut app, RawInput::default);
+    assert_eq!(delay, Some(Duration::MAX));
+}
+
+/// The user may not be looking at a window without focus, so its notifications wait, and the app asks for no frame for them.
+#[test]
+fn notifications_wait_while_the_window_does_not_have_focus() {
+    let ctx = Context::default();
+    let mut app = App::new(ctx.clone());
+    app.sender().send(AppAction::Notify(SAVED)).unwrap();
+    let delay = delay_asked(&ctx, &mut app, without_focus);
+    assert_eq!(delay, Some(Duration::MAX));
+    // Back in the window, the notification still has its whole delay.
+    run_frame(&ctx, &mut app, RawInput::default());
+    let time_left = app.state().notifications().next_expiry();
+    assert_eq!(time_left, Some(DEFAULT_DELAY));
+}
+
+/// eframe draws a frame when the window loses focus, so the time the window had focus until then counts.
+#[test]
+fn the_time_before_the_window_loses_focus_counts() {
+    let ctx = Context::default();
+    let mut app = App::new(ctx.clone());
+    app.sender().send(AppAction::Notify(SAVED)).unwrap();
+    // The first frames show the notification and start its countdown.
+    delay_asked(&ctx, &mut app, RawInput::default);
+    let before = app.state().notifications().next_expiry();
+    run_frame(&ctx, &mut app, without_focus());
+    let after = app.state().notifications().next_expiry();
+    assert!(after < before, "{after:?} is not less than {before:?}");
 }
 
 /// Without a display the window cannot be created: the app logs the error and exits with a failure status instead of crashing.

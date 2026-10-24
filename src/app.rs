@@ -5,11 +5,12 @@
 //! [`App`] keeps all of the app's data in one [`AppState`], which only [`AppState::apply`] changes.
 //! On each frame, eframe calls two methods of [`App`]:
 //!
-//! 1. [`logic`](eframe::App::logic) counts the notifications down by the time since the last frame, then applies the [actions](crate::action) waiting in the [`ActionQueue`], in order.
+//! 1. [`logic`](eframe::App::logic) applies the [actions](crate::action) waiting in the [`ActionQueue`] with [`AppState::update`], which also counts the notifications down by the time the window had focus since the last frame.
 //! 2. [`ui`](eframe::App::ui) lets the screens read the data, draw the window and push the user's actions to the queue.
 //! 3. If they pushed any, `ui` asks for another frame, whose `logic` applies them.
 //!
 //! eframe calls `logic` even while the window is minimized, so the actions of background tasks still take effect.
+//! eframe also draws a frame whenever the window gains or loses focus, so the window had focus all the time since the last frame if it had focus then.
 //! While shown notifications count down, `logic` also asks for a frame when the next one's time is up, so that it goes even if the user does nothing.
 //!
 //! # Rendering
@@ -19,11 +20,11 @@
 //! frame in 120 ms, against 13.8 MB and 630 ms for wgpu.
 //! VestaDesk therefore needs OpenGL 2.0 or later.
 
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use egui::{Context, Vec2};
 
-use crate::action::{self, ActionQueue, ActionSender, AppAction};
+use crate::action::{self, ActionQueue, ActionSender};
 use crate::error::{AppError, Result};
 use crate::fonts;
 use crate::layout;
@@ -48,8 +49,8 @@ pub struct App {
     actions: ActionQueue,
     /// The sender that [`App::sender`] gives to background tasks.
     sender: ActionSender,
-    /// When the last frame started, from which the next one counts the notifications down.
-    last_frame: Instant,
+    /// When the last frame started, if the window had focus then: the next frame counts the notifications down by the time since.
+    last_focused_frame: Option<Instant>,
 }
 
 impl App {
@@ -65,7 +66,7 @@ impl App {
             state: AppState::default(),
             actions,
             sender,
-            last_frame: Instant::now(),
+            last_focused_frame: None,
         }
     }
 
@@ -108,14 +109,16 @@ impl App {
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let now = Instant::now();
-        let elapsed = now.saturating_duration_since(self.last_frame);
-        self.last_frame = now;
-        self.state.apply(AppAction::CountDown(elapsed));
-        for action in self.actions.take() {
-            self.state.apply(action);
-        }
-        if let Some(time_left) = self.state.notifications().next_expiry() {
-            ctx.request_repaint_after(time_left);
+        let elapsed = self
+            .last_focused_frame
+            .map_or(Duration::ZERO, |last| now.saturating_duration_since(last));
+        let has_focus = ctx.input(|input| input.raw.focused);
+        self.last_focused_frame = has_focus.then_some(now);
+        self.state.update(elapsed, self.actions.take());
+        if has_focus && let Some(time_left) = self.state.notifications().next_expiry() {
+            // egui wakes the app a frame early, when the notification would still have that frame left.
+            let frame = Duration::try_from_secs_f32(ctx.input(|input| input.predicted_dt));
+            ctx.request_repaint_after(time_left.saturating_add(frame.unwrap_or_default()));
         }
     }
 
