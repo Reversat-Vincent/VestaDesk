@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="574" viewBox="0 0 1160 574" style="max-width: 100%; height: auto" role="img" aria-labelledby="nt-title nt-desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <title id="nt-title">Notifications in VestaDesk</title>
+    <desc id="nt-desc">A notification is raised with Notify, pushed by a screen or sent by a background task, and joins the list at the next screen update. While five are shown, it waits behind them in the order raised; otherwise it is shown at once. A shown notification counts its delay down, DEFAULT_DELAY or 3 s, and delay_left tells how much is left, from 1 down to 0. It goes when its time is up, with Expire, or when the user closes it, with Dismiss, and the first one waiting takes its place. A notification identical to one in the list is not added again: that one counts it and restarts its countdown, so each notification is in the list once at most. The countdown pauses while the pointer is over the notification, the window has no focus or the computer sleeps, and a notification that stays until the user closes it has none. Each screen update applies CountDown first, then the queue's actions, then Expire, so a repeat raised in a notification's last update still joins it.</desc>
+    <style>
+        .nt-bg { fill: #ffffff; }
+        .nt-title { font-size: 22px; font-weight: 600; fill: #1f2328; }
+        .nt-lead { font-size: 14px; fill: #59636e; }
+        .nt-foot { font-size: 13px; fill: #59636e; }
+        .nt-node { fill: #f6f8fa; stroke: #d1d9e0; }
+        .nt-pick { fill: #ddf4ff; stroke: #b6e3ff; }
+        .nt-type { fill: #f1f8ff; stroke: #b6e3ff; }
+        .nt-name { font-size: 15px; font-weight: 600; fill: #1f2328; }
+        .nt-text { font-size: 13px; fill: #1f2328; }
+        .nt-note { font-size: 12px; fill: #59636e; }
+        .nt-code { font-family: Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', monospace; }
+        .nt-call { font-size: 12.5px; fill: #0550ae; }
+        .nt-flow { fill: none; stroke: #0969da; stroke-width: 1.75; }
+        .nt-link { fill: none; stroke: #818b98; stroke-width: 1.5; stroke-dasharray: 4 4; }
+        .nt-flow-head { fill: #0969da; }
+        @media (prefers-color-scheme: dark) {
+            .nt-bg { fill: #0d1117; }
+            .nt-title, .nt-name, .nt-text { fill: #e6edf3; }
+            .nt-lead, .nt-foot, .nt-note { fill: #9198a1; }
+            .nt-node { fill: #151b23; stroke: #3d444d; }
+            .nt-pick { fill: #172c47; stroke: #23487a; }
+            .nt-type { fill: #121d2f; stroke: #23487a; }
+            .nt-call { fill: #79c0ff; }
+            .nt-flow { stroke: #4493f8; }
+            .nt-link { stroke: #9198a1; }
+            .nt-flow-head { fill: #4493f8; }
+        }
+    </style>
+    <defs>
+        <marker id="nt-arrow-flow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="nt-flow-head" d="M0 1 L10 5 L0 9 Z"/>
+        </marker>
+    </defs>
+    <rect class="nt-bg" width="1160" height="574"/>
+    <text class="nt-title" x="32" y="48">Notifications in VestaDesk</text>
+    <text class="nt-lead" x="32" y="74">Any part of the app raises notifications: the first five raised are shown and count down, and the others wait their turn.</text>
+    <!-- Raised -->
+    <rect class="nt-node" x="32" y="150" width="200" height="160" rx="10"/>
+    <text class="nt-name" x="48" y="176">Raised</text>
+    <text class="nt-call nt-code" x="48" y="200">Notify(Notification)</text>
+    <text class="nt-text" x="48" y="226">pushed by a screen</text>
+    <text class="nt-text" x="48" y="245">or sent by a task</text>
+    <text class="nt-note" x="48" y="271">joins the list at the</text>
+    <text class="nt-note" x="48" y="288">next screen update</text>
+    <!-- Waiting -->
+    <rect class="nt-node" x="320" y="150" width="184" height="160" rx="10"/>
+    <text class="nt-name" x="336" y="176">Waiting</text>
+    <text class="nt-text" x="336" y="202">behind the five shown,</text>
+    <text class="nt-text" x="336" y="221">in the order raised</text>
+    <text class="nt-note" x="336" y="247">not counting down yet</text>
+    <!-- Shown -->
+    <rect class="nt-pick" x="592" y="150" width="256" height="160" rx="10"/>
+    <text class="nt-name" x="608" y="176">Shown</text>
+    <text class="nt-note" x="832" y="176" text-anchor="end">the first five</text>
+    <text class="nt-text" x="608" y="202">counts its delay down:</text>
+    <text class="nt-text" x="608" y="221"><tspan class="nt-code">DEFAULT_DELAY</tspan>, 3 s</text>
+    <text class="nt-call nt-code" x="608" y="247">delay_left(): 1 → 0</text>
+    <text class="nt-note" x="608" y="273">translated each time it is drawn</text>
+    <!-- Gone -->
+    <rect class="nt-node" x="920" y="150" width="208" height="160" rx="10"/>
+    <text class="nt-name" x="936" y="176">Gone</text>
+    <text x="936" y="202"><tspan class="nt-call nt-code">Expire</tspan><tspan class="nt-note"> its time is up</tspan></text>
+    <text x="936" y="222"><tspan class="nt-call nt-code">Dismiss</tspan><tspan class="nt-note"> the user closed it</tspan></text>
+    <text class="nt-text" x="936" y="248">the first one waiting</text>
+    <text class="nt-text" x="936" y="267">takes its place</text>
+    <!-- Raised straight to Shown -->
+    <path class="nt-flow" d="M180 150 V122 H700 V149" marker-end="url(#nt-arrow-flow)"/>
+    <text class="nt-note" x="440" y="114" text-anchor="middle">fewer than five shown</text>
+    <!-- Raised to Waiting -->
+    <path class="nt-flow" d="M232 224 H319" marker-end="url(#nt-arrow-flow)"/>
+    <text class="nt-note" x="276" y="214" text-anchor="middle">five shown</text>
+    <!-- Waiting to Shown -->
+    <path class="nt-flow" d="M504 224 H591" marker-end="url(#nt-arrow-flow)"/>
+    <text class="nt-note" x="548" y="202" text-anchor="middle">a place</text>
+    <text class="nt-note" x="548" y="215" text-anchor="middle">frees up</text>
+    <!-- Shown to Gone -->
+    <path class="nt-flow" d="M848 224 H919" marker-end="url(#nt-arrow-flow)"/>
+    <text class="nt-note" x="884" y="202" text-anchor="middle">time up</text>
+    <text class="nt-note" x="884" y="215" text-anchor="middle">or closed</text>
+    <!-- Repeats -->
+    <path class="nt-flow" d="M116 310 V359" marker-end="url(#nt-arrow-flow)"/>
+    <text class="nt-note" x="128" y="340">if an identical one is in the list</text>
+    <rect class="nt-type" x="32" y="360" width="472" height="150" rx="10"/>
+    <text class="nt-name" x="48" y="386">Repeats</text>
+    <text class="nt-text" x="48" y="412">A notification identical to one in the list is not added again:</text>
+    <text class="nt-text" x="48" y="431">that one counts it and restarts its countdown.</text>
+    <text x="48" y="457"><tspan class="nt-call nt-code">count()</tspan><tspan class="nt-note"> tells how many times it was raised</tspan></text>
+    <text class="nt-note" x="48" y="483">Each notification is in the list once at most.</text>
+    <!-- Pauses -->
+    <path class="nt-link" d="M720 310 V360"/>
+    <rect class="nt-type" x="592" y="360" width="256" height="150" rx="10"/>
+    <text class="nt-name" x="608" y="386">Its countdown pauses</text>
+    <text class="nt-text" x="608" y="412">while the pointer is over it,</text>
+    <text class="nt-text" x="608" y="431">the window has no focus,</text>
+    <text class="nt-text" x="608" y="450">or the computer sleeps</text>
+    <text class="nt-note" x="608" y="476">and there is none if it stays</text>
+    <text class="nt-note" x="608" y="493">until the user closes it</text>
+    <!-- Each screen update -->
+    <path class="nt-link" d="M1024 310 V360"/>
+    <rect class="nt-type" x="920" y="360" width="208" height="150" rx="10"/>
+    <text class="nt-name" x="936" y="386">Each screen update</text>
+    <text x="936" y="410"><tspan class="nt-call nt-code">CountDown</tspan><tspan class="nt-note"> first,</tspan></text>
+    <text class="nt-text" x="936" y="429">then the queue's actions,</text>
+    <text x="936" y="450"><tspan class="nt-call nt-code">Expire</tspan><tspan class="nt-note"> last:</tspan></text>
+    <text class="nt-note" x="936" y="476">a repeat raised in the last</text>
+    <text class="nt-note" x="936" y="493">update still joins it</text>
+    <text class="nt-foot" x="32" y="548">Example: a failed save raises an error that stays until closed; when the save fails again, that notification counts it instead of showing a second one.</text>
+</svg>

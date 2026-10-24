@@ -4,7 +4,7 @@
 //! window is drawn, they push an action to the queue. Background tasks send theirs from any thread,
 //! which also asks for a screen update, so that their actions take effect even if the user does
 //! nothing. At the start of the next screen update, the app takes every action from the queue and
-//! applies it with [`AppState::apply`].
+//! applies them in order with [`AppState::update`].
 //!
 #![doc = include_str!("../docs/assets/actions.svg")]
 //!
@@ -18,17 +18,21 @@
 //! 2. Apply it in [`AppState::apply`]: its `match` has no catch-all arm, so the build fails until it does.
 //! 3. Push it from the screens that trigger it, passing the queue down to them if needed, or send it from a background task.
 //! 4. Test its effect on an [`AppState`] in `tests/state.rs`.
+//! 5. Show it in the diagram above, `docs/assets/actions.svg`, with any field it adds to [`AppState`].
 //!
 //! [`App::sender`]: crate::app::App::sender
 //! [`AppState`]: crate::state::AppState
 //! [`AppState::apply`]: crate::state::AppState::apply
+//! [`AppState::update`]: crate::state::AppState::update
 
 use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::time::Duration;
 
 use egui::{Context, ViewportId};
 
 use crate::error::{AppError, Result};
+use crate::notifications::Notification;
 use crate::router::Route;
 
 /// A change to the app's data, applied by [`AppState::apply`](crate::state::AppState::apply).
@@ -36,6 +40,16 @@ use crate::router::Route;
 pub enum AppAction {
     /// Shows the page of the route in the central area.
     Navigate(Route),
+    /// Raises the notification, which joins the [list of notifications](crate::notifications::Notifications).
+    Notify(Notification),
+    /// Closes the notification, so that the first one waiting takes its place.
+    Dismiss(Notification),
+    /// Sets the notification under the pointer, or none: its countdown pauses until the pointer leaves it, and screens push it whenever the notification under the pointer differs from [`Notifications::hovered`](crate::notifications::Notifications::hovered).
+    Hover(Option<Notification>),
+    /// Counts the shown notifications down by the given time, as part of [`AppState::update`](crate::state::AppState::update).
+    CountDown(Duration),
+    /// Removes the shown notifications whose time is up, as part of [`AppState::update`](crate::state::AppState::update).
+    Expire,
 }
 
 /// Returns a sender for background tasks and the queue it sends to; each action sent asks `ctx` for a screen update.

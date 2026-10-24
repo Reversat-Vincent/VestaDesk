@@ -1,7 +1,10 @@
 //! Domain state ([`AppState`]) and the pure state-transition function that applies actions ([`AppState::apply`]).
 
+use std::time::Duration;
+
 use crate::action::AppAction;
 use crate::i18n::Language;
+use crate::notifications::{DEFAULT_DELAY, LATE_UPDATE, Notifications};
 use crate::router::Route;
 
 /// All of the app's data, in one place.
@@ -13,6 +16,8 @@ pub struct AppState {
     route: Route,
     /// The language of the app's texts.
     language: Language,
+    /// The notifications raised and not gone yet.
+    notifications: Notifications,
 }
 
 impl AppState {
@@ -49,10 +54,46 @@ impl AppState {
         self.language
     }
 
+    /// Returns the notifications raised and not gone yet: none when the app opens.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vesta_desk::state::AppState;
+    ///
+    /// assert!(AppState::default().notifications().visible().is_empty());
+    /// ```
+    #[must_use]
+    pub fn notifications(&self) -> &Notifications {
+        &self.notifications
+    }
+
     /// Applies `action` to the data; this is the only function that changes it.
     pub fn apply(&mut self, action: AppAction) {
         match action {
             AppAction::Navigate(route) => self.route = route,
+            AppAction::Notify(notification) => self.notifications.push(notification, DEFAULT_DELAY),
+            AppAction::Dismiss(notification) => self.notifications.dismiss(notification),
+            AppAction::Hover(notification) => self.notifications.hover(notification),
+            AppAction::CountDown(elapsed) => self.notifications.count_down(elapsed),
+            AppAction::Expire => self.notifications.expire(),
         }
+    }
+
+    /// Applies a screen update with [`AppState::apply`]: counts the notifications down by `elapsed`, applies `actions` in order, then removes the notifications whose time is up.
+    ///
+    /// An `elapsed` more than [`LATE_UPDATE`] past the next notification's time counts nothing, since the app asks for a screen update when that time is up.
+    pub fn update(&mut self, elapsed: Duration, actions: impl IntoIterator<Item = AppAction>) {
+        let late = self
+            .notifications
+            .next_expiry()
+            .is_some_and(|time_left| elapsed > time_left.saturating_add(LATE_UPDATE));
+        if !late {
+            self.apply(AppAction::CountDown(elapsed));
+        }
+        for action in actions {
+            self.apply(action);
+        }
+        self.apply(AppAction::Expire);
     }
 }
