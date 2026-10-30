@@ -61,13 +61,20 @@ Fix the code when you can. Otherwise, suppress the lint on the smallest item pos
   - naming: casing (C-CASE), `as_`/`to_`/`into_` conversions (C-CONV), getters without a `get_` prefix (C-GETTER);
   - common traits: public types implement `Debug` (C-DEBUG) and, where it makes sense, `Clone`, `Default`, `PartialEq` and `Eq` (C-COMMON-TRAITS).
 - Format with `cargo fmt`; rustfmt enforces the [Rust Style Guide](https://doc.rust-lang.org/style-guide/).
+- Name modules and items with the plain words the tickets use, not pattern or jargon names.
+- Never discard a `Result` with `let _ =`: handle the error or report it as an `AppError`. When one error case is expected and harmless, skip only that case, explicitly.
+- Every feature works the same on Windows and Linux, X11 and Wayland included. Before relying on a window or system state, check that winit reports it on all three.
+- A test checks something VestaDesk decides or computes, not how egui handles a setting that VestaDesk passes to it.
 
 ## Documentation
 
 The developer documentation is generated from the code by `cargo doc`. It is mainly intended for developers, so it must be clear, understandable and easy to read.
 
+- All documentation, the README included, keeps to the essentials: each requirement or fact, stated plainly, without edge cases, nuances, asides or background explanations.
 - The crate docs in `src/lib.rs` are the front page: what VestaDesk is and how its modules fit together, with a link to each top-level module.
+- A design decision is a short section of the `//!` docs of the module it concerns, never a separate file: what was chosen, the facts that decided it and its cost. Other files point to that section rather than repeat it.
 - Every doc comment starts with a one-sentence summary.
+- A one-sentence comment in the code stays on one line, even past 100 columns. A longer one wraps at 100 columns, but a last line of only a word or two joins the line above, even past 100 columns.
 - A public function that returns a `Result` has an `# Errors` section that links each error it returns and says when.
 - A public function that returns a value computed only from its arguments has an `# Examples` section. Examples use `?` rather than `unwrap` and run as tests with `cargo test --doc`.
 - Link to other items with intra-doc links, not URLs.
